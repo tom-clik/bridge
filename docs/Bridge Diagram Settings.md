@@ -7,9 +7,7 @@ notes: Bit pre-historic (i.e. 2000s vintage). Have always wanted to rework this 
 
 ## Introduction
 
-Bridge hands can be included in ClikWriter documents using a single hand, suit layout (1-4 hands), simple auction (2/4 players), or by using a full PBN definition.
-
-This document describes the settings for creating diagrams using the full definitions. 
+This document is for developers looking to style ColdLight Bridge diagrams with CSS.  
 
 ## Diagram Sections
 

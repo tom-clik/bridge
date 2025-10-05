@@ -9,7 +9,7 @@ http://tpc25.clikpic.com/customtags/bridge/bridge_parser_test.cfm
 --->
 
 <cfscript>
-coldsoupObj = new coldsoup.coldsoup();
+coldsoupObj = new coldsoup.coldsoup(server.system.environment.javalib & "\jsoup-1.20.1.jar");
 bridge = new bridge.bridge_parser(jsoupObj=coldsoupObj);
 logger = new logger.logger(debug=1);
 bridge.loggerObj = logger;
@@ -17,7 +17,7 @@ path = getDirectoryFromPath(getCurrentTemplatePath());
 </cfscript>
 
 <cfsavecontent variable="bridgeHands">
-
+<!--- 
 <h2>Simple suit combo</h2>
 <bridge id='simplesuitcombo' test=1>kq7 - A3 - 
 </bridge>
@@ -33,14 +33,28 @@ W:542 kq7 jt986 A3
 </bridge>
 
 <h2>Hand</h2>
-<bridge id="hand" vertical=false>akq78.5634.kq7.7</bridge>
+<bridge id="hand">akq78.5634.kq7.7</bridge>
 
 <h2>Simple hand</h2>
-<bridge id="hand2">-.akq78.5634.kq75</bridge>
+<bridge id="hand2" class="standalone">-.akq78.5634.kq75</bridge>
 
 <h2>Full PBN</h2>
-<bridge id="hand1_4" file="hands/test_hand2.pbn" info="yes" style="2_4" lead="yes" /> 
+<bridge id="hand1_4" file="hands/test_hand2.pbn" info="yes" style="2_4" lead="yes"></bridge> 
+ --->
 
+<bridge>AK874 6532</bridge>
+
+<bridge>AKJ74 6532</bridge>
+
+<!--- <h2>Notes</h2>
+<bridge style="0_2" north="Partner" south="You">
+[auction]
+2♣ - 2♦ =1= - 
+2♠ - 3♠ =2= - 
+?
+[note "1:waiting"]
+[note "2:positive"]	  
+</bridge> --->
 
 </cfsavecontent>
 
@@ -67,7 +81,7 @@ for (hand in hands) {
 
 #data.body().html()#
 
-#logger.viewLog(category="bridge")#
+#logger.viewLog()#
 
 </cfoutput>
 

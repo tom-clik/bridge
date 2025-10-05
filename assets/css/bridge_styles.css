@@ -1,4 +1,10 @@
-@import url(http://fonts.googleapis.com/css?family=Droid+Sans+Mono);
+@import url(https://fonts.googleapis.com/css?family=Droid+Sans+Mono);
+
+:root {
+	--auction-font:"Times New Roman";
+	--card-font: "Droid Sans Mono";
+	--symbol-font: "courier new";/* droid sans mono not so mono when it comes to diamonds */
+}
 
 /* this may conflict -- need to find all our table classes and insert them here */
 table {
@@ -7,12 +13,11 @@ table {
 
 /* all font family defs for cards here */
 .cards, div.dealrose {
-	font-family: DROID SANS MONO,monospace;
+	font-family: var(--card-font), monospace;
 }
 
-/* droid sans mono not so mono when it comes to diamonds */
 span.suit {
-	font-family: "courier new", monospace;
+	font-family: var(--symbol-font), monospace;
 }
 
 
@@ -28,32 +33,35 @@ p.bridge  {
 	margin:1em auto;
 }
 
-.bridgehand.standalone.vertical {
+.bridgehand:not(.vertical) {
+	white-space: nowrap;
+}
+
+.bridgehand.vertical {
 	display: grid;
 	grid-template-columns: max-content  max-content;
 	grid-gap:4px 0 ;
 }
 
-
-table.bridgesuitcombo.standalone {
+table.bridgesuitcombo {
 	--table-border-width:0px;
 	margin:1em auto;
 }
 
 /* use standard font for standalone card combos -- change this if you want fixed width */
-table.bridgesuitcombo.standalone .cards {
+table.bridgesuitcombo .cards {
 	font-family:inherit;
 	word-spacing:inherit;
 }
 
 /* try and line it up properly rather than just giving a left margin to n and s*/
-table.bridgesuitcombo.standalone td.w {
+table.bridgesuitcombo td.w {
 	text-align: right;
 	padding-right:20px;
 	width:50%;
 }
 
-table.bridgesuitcombo.standalone td.e {
+table.bridgesuitcombo td.e {
 	text-align: left;
 	padding-left:20px;
 	width:50%;
@@ -81,8 +89,14 @@ table.bridgesuitcombo td.n, table.bridgesuitcombo td.s {
 /* Suit span surrounds the card symbol to the left */
 span.suit {
 	display: inline-block;
-	padding-right: 2px;
 	font-size: 14px;
+}
+
+.bridgehand span.suit {
+	padding:2px;
+}
+.bridgehand span.suit.c {
+	padding-right:3px;
 }
 
 @media print {
@@ -92,10 +106,10 @@ span.suit {
 }
 
 /* inconsistency here */
-.hand span.suit,.bridgehand span.suit {
-	width:10px;
+/*.hand span.suit,.bridgehand span.suit {
+	width:0.8em;
 }
-
+*/
 @media print {
 	.hand span.suit,.bridgehand span.suit {
 		width:10pt;
@@ -263,7 +277,7 @@ div.bridgeauction {
 	font-size: 90%;
 	width:220px;
 	margin:0 auto;
-	font-family: "Times New Roman";
+	font-family: var(--auction-font);
 }
 
 
@@ -277,14 +291,52 @@ div.bridgeauction table.auction {
 	border-spacing: 0;
 }
 
+div.bridgeauction table {
+	--table-border-width:0;
+}
+
+div.bridgeauction table.auction thead {
+	/*text-align: left;*/
+	border-width:1px 0;
+	border-color:#000000;
+	border-style: solid;
+	padding:2px 4px 4px 4px;
+	line-height: 100%;
+	vertical-align: middle;
+	background: rgba(212, 221, 228, .5);
+}
+
+div.bridgeauction table.auction tbody tr {
+	/*text-align: left;*/
+	border-width:0 0 1px 0;
+	border-color:rgba(212, 221, 228, .5);
+	border-style: solid;
+}
+
+div.bridgeauction table.auction :is(th, td) > div {
+	position: relative;
+	top:1px;
+}
+
+div.bridgeauction table.auction tbody tr:last-of-type {
+	border-width:0;
+}
 div.bridgeauction table.auction td, div.bridgeauction table.auction th {
 	/* table width/4 - h_padding */
-	width:25%;
-	white-space: nowrap;
+	background: none;
+	vertical-align: middle;
+	height:2em;
+	width: 25%;
+	line-height: 1;
+	padding:2px 4px 4px 4px;
 }
 
 div.bridgeauction table.auction td {
-	padding:2px 0px 2px 18px;
+	padding-left:18px;
+}
+
+div.bridgeauction.size2 table.auction td {
+	padding-left:36px;
 }
 
 @media print {
@@ -295,11 +347,11 @@ div.bridgeauction table.auction td {
 
 /* with just two columns we reduce the width */
 div.bridgeauction.size2 {
-	width:140px;
+	width:220px;
 }
 
 div.bridgeauction.size2 table.auction {
-	width:140px;
+	width:100%;
 	margin:0;
 }
 
@@ -308,15 +360,6 @@ div.bridgeauction.size2 table.auction td, div.bridgeauction.size2 table.auction 
 	width:50%;
 }
 
-div.bridgeauction table.auction th {
-	/*text-align: left;*/
-	border-width:1px 0;
-	border-color:#000000;
-	border-style: solid;
-	padding:2px 4px 4px 4px;
-	line-height: 100%;
-	vertical-align: middle;
-}
 
 @media print {
 	div.bridgeauction table.auction th {
@@ -328,7 +371,6 @@ div.bridgeauction table.auction th {
 div.bridgeauction span.suit {
 	font-size: 14px;
 	padding-right:0;
-	display:normal;
 }
 
 div.bridgeauction span.note {
@@ -339,8 +381,24 @@ div.bridgeauction span.note {
 div.bridgeauction table.notes td {
 	padding:2px 4px 2px 0px;
 }
+div.bridgeauction.size2 table.notes {
+	margin-left:-120px;
+	margin-right:-120px;
+}
 
 div.clearing {
 	height:0.1px;
 	clear: both;
+}
+
+p.tip {
+	margin-left: 2em;     /* Space from the left edge */
+}
+
+p.tip > span:first-of-type {
+	margin-left: -2em;     /* Space from the left edge */
+	margin-right:0;
+	display: inline-block;
+	width: 2em;
+	font-weight: bold;
 }
