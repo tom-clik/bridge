@@ -464,8 +464,9 @@ component {
 				retStr = retStr & '-';
 			}
 			
-			retStr  = replace(retStr,"..",".-.");
-			
+			retStr  = replace(retStr,"..",".-.","all");
+			// edge case from BOFPP!! 
+			retStr  = replace(retStr,"..",".-.","all");
 			suits = ListToArray(retStr,".");
 		}
 		else {

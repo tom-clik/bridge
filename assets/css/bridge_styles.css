@@ -132,7 +132,7 @@ div.bridgefull {
 div.bridgeinfo {
 	position:absolute;
 	left:-120px;
-	width:120px;
+	min-width:120px;
 	/* leave this  in -- its essential to stop crazy  margin outside
 	 box behaviour*/
 	padding:0.1px;
