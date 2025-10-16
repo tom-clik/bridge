@@ -8,4 +8,10 @@
 			"path": "C:\\git\\dm\\ClikWriter\\Bridge"
 		},
 	],
+	"settings": {
+		"sublime-view-in-browser": {
+			"baseUrl": "http://localhost:8089/",
+			"basePath": "C:\\git\\libraries\\",
+		},
+	},
 }
