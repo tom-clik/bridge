@@ -538,55 +538,7 @@ private function getPreviousPosition(pos) {
 
     return Mid(posList,posFind,1);
 }
-/** convert simple array of cards to pbn format where the columns are the player
-and the order can only be ascertained by working out who won each trick. */
-string function convertPlayArrayToPBNNonsense(hand, string opener) {
-	
-	var dealStruct = playerCardStruct(arguments.hand.deal);
-	
 
-	var retAuction = {"n"=[],"s"=[],"e"=[],"w"=[]};
-	var suit = false;
-	var card = false;
-	var rank = false;
-	var player = false;
-	local.noteNum = 1;
-	local.notes = [];
-	for (card in arguments.hand.play) {
-		local.noteText = "";
-				
-		if (structKeyExists(card,"note")) {
-			local.noteText = " =#local.noteNum#=";
-			local.notes[local.noteNum] = card.note;
-			local.noteNum++;
-		}
-		ArrayAppend(retAuction[dealStruct[card.data]],card.data&local.noteText);
-				
-	}
-
-	
-	local.outputOrder = [arguments.opener];
-	for (local.i = 2; local.i lte 4;local.i++) {
-		local.outputOrder[local.i] = getNextPosition(local.outputOrder[local.i-1]);
-	}
-	var retVal = "";
-	for (local.i = 1; local.i lte 13;local.i++) {
-		local.trick = "";
-		for (player in local.outputOrder) {
-			if (arrayLen(retAuction[player]) gte i) {
-				local.trick = listAppend(local.trick,retAuction[player][i]," ");
-			}
-		}
-		retVal = ListAppend(retVal,local.trick,chr(13)&chr(10));
-	}
-
-	for (local.i = 1; local.i lte ArrayLen(local.notes);local.i++) {
-		retVal &= "[Note ""#local.i#:#local.notes[local.i]#""],chr(13)&chr(10)";
-	}
-	
-
-	return retVal;
-}
 
 struct function playerCardStruct(deal) {
 	

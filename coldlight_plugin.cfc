@@ -1,4 +1,4 @@
-component implements="coldlight.pluginInterface" {
+component implements="coldlight.plugins.pluginInterface" {
 
 	public function init(markdown.flexmark markdownObj, coldsoup.coldsoup coldsoupObj) {
 		
@@ -6,6 +6,12 @@ component implements="coldlight.pluginInterface" {
 		variables.bridgeObj = new bridge.bridge_parser(jsoupObj=arguments.coldsoupObj);
 		
 		return this;
+	}
+
+	public string function preProcess(required string text) localmode=true {
+
+		return arguments.text;
+		
 	}
 
 	public void function process(required node, required struct document) localmode=true {

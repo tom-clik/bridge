@@ -1,0 +1,48 @@
+<svg viewBox="0 0 240 220" xmlns="http://www.w3.org/2000/svg">
+ 
+  <style>
+    <!-- text { font: 13px monospace; word-spacing:-6px} -->
+    
+    /* Note that the color of the text is set with the    *
+     * fill property, the color property is for HTML only */
+    .black tspan:first-of-type {fill: black; }
+    .red tspan:first-of-type  {fill: red; }
+     .player-label { font: bold 12px sans-serif; line-height:0 }
+    
+    /* Styling for rectangle representing players' table */
+    .table { fill: lightgray; stroke: black; stroke-width: 2; }
+  </style>
+   <g id="handdiagram">
+  <!-- Rectangle for the bridge players' table -->
+  <rect x="90" y="86" width="56" height="56" class="table" />
+
+  <!-- Player labels -->
+  <text x="114" y="100" class="player-label">N</text> <!-- North -->
+  <text x="114" y="136" class="player-label">S</text> <!-- South -->
+  <text x="134" y="118" class="player-label">E</text> <!-- East -->
+  <text x="94" y="118" class="player-label">W</text> <!-- West -->
+
+
+  <text x="90" y="155" class="black"><tspan>♠</tspan><tspan dx="10">J T 5</tspan></text>
+  <text x="90" y="170" class="red"><tspan>♥</tspan><tspan dx="10">A K Q</tspan></text>
+  <text x="90" y="185" class="red"><tspan>♦</tspan><tspan dx="10">A J 4</tspan></text>
+  <text x="90" y="200" class="black"><tspan>♣</tspan><tspan dx="10">K T 9 8 7 4 2</tspan></text>
+
+  <text x="0" y="95" class="black"><tspan>♠</tspan><tspan dx="10">K Q 9 8 3</tspan></text>
+  <text x="0" y="110" class="red"><tspan>♥</tspan><tspan dx="10">4 3 2</tspan></text>
+  <text x="0" y="125" class="red"><tspan>♦</tspan><tspan dx="10">Q 7 6</tspan></text>
+  <text x="0" y="140" class="black"><tspan>♣</tspan><tspan dx="10">K 6</tspan></text>
+
+  <text x="90" y="35" class="black"><tspan>♠</tspan><tspan dx="10">A 4 2</tspan></text>
+  <text x="90" y="50" class="red"><tspan>♥</tspan><tspan dx="10">9 6 5</tspan></text>
+  <text x="90" y="65" class="red"><tspan>♦</tspan><tspan dx="10">K 9</tspan></text>
+  <text x="90" y="80" class="black"><tspan>♣</tspan><tspan dx="10">Q 9 7 4 2</tspan></text>
+
+
+  <text x="180" y="95" class="black"><tspan>♠</tspan><tspan dx="10">7 6</tspan></text>
+  <text x="180" y="110" class="red"><tspan>♥</tspan><tspan dx="10">J T 8 7</tspan></text>
+  <text x="180" y="125" class="red"><tspan>♦</tspan><tspan dx="10">T 8 5 3 2</tspan></text>
+  <text x="180" y="140" class="black"><tspan>♣</tspan><tspan dx="10">A K</tspan></text>
+
+</g>
+</svg>

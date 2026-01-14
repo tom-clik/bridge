@@ -1,0 +1,73 @@
+<svg viewBox="0 0 240 220" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Rectangle for the bridge players' table -->
+  <rect x="90" y="86" width="56" height="56"
+        fill="lightgray" stroke="black" stroke-width="2" />
+
+  <!-- Player labels -->
+  <text x="114" y="100"
+        font-family="sans-serif" font-weight="bold" font-size="12" fill="black">N</text>
+  <text x="114" y="136"
+        font-family="sans-serif" font-weight="bold" font-size="12" fill="black">S</text>
+  <text x="134" y="118"
+        font-family="sans-serif" font-weight="bold" font-size="12" fill="black">E</text>
+  <text x="94" y="118"
+        font-family="sans-serif" font-weight="bold" font-size="12" fill="black">W</text>
+
+  <!-- South -->
+  <text x="90" y="155" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="black">♠</tspan><tspan dx="10">J T 5</tspan>
+  </text>
+  <text x="90" y="170" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="red">♥</tspan><tspan dx="10">A K Q</tspan>
+  </text>
+  <text x="90" y="185" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="red">♦</tspan><tspan dx="10">A J 4</tspan>
+  </text>
+  <text x="90" y="200" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="black">♣</tspan><tspan dx="10">K T 9 8 7 4 2</tspan>
+  </text>
+
+  <!-- West -->
+  <text x="0" y="95"  font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="black">♠</tspan><tspan dx="10">K Q 9 8 3</tspan>
+  </text>
+  <text x="0" y="110" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="red">♥</tspan><tspan dx="10">4 3 2</tspan>
+  </text>
+  <text x="0" y="125" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="red">♦</tspan><tspan dx="10">Q 7 6</tspan>
+  </text>
+  <text x="0" y="140" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="black">♣</tspan><tspan dx="10">K 6</tspan>
+  </text>
+
+  <!-- North -->
+  <text x="90" y="35" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="black">♠</tspan><tspan dx="10">A 4 2</tspan>
+  </text>
+  <text x="90" y="50" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="red">♥</tspan><tspan dx="10">9 6 5</tspan>
+  </text>
+  <text x="90" y="65" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="red">♦</tspan><tspan dx="10">K 9</tspan>
+  </text>
+  <text x="90" y="80" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="black">♣</tspan><tspan dx="10">Q 9 7 4 2</tspan>
+  </text>
+
+  <!-- East -->
+  <text x="180" y="95"  font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="black">♠</tspan><tspan dx="10">7 6</tspan>
+  </text>
+  <text x="180" y="110" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="red">♥</tspan><tspan dx="10">J T 8 7</tspan>
+  </text>
+  <text x="180" y="125" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="red">♦</tspan><tspan dx="10">T 8 5 3 2</tspan>
+  </text>
+  <text x="180" y="140" font-family="monospace" font-size="13" word-spacing="-6px" fill="currentColor">
+    <tspan fill="black">♣</tspan><tspan dx="10">A K</tspan>
+  </text>
+
+</svg>
