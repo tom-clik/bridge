@@ -1,9 +1,5 @@
 <cfscript>
 bridge = new bridge.testing.bridgeTestObj();
-logger = new logger.logger(debug=1);
-
-bridge.loggerObj = logger;
-path = getDirectoryFromPath(getCurrentTemplatePath());
 
 auction = "1♣ - 1♠ -
 4♠ - 4NT -

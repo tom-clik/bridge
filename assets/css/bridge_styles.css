@@ -26,39 +26,41 @@ p.bridge  {
 	text-align: center !important;
 }
 
-/*@media screen {*/
-	.bridgehand:not(.inline) {
-	    display: grid;
-	    grid-template-columns: auto auto;
-	    justify-content: center;   /* center the whole hand */
-	    column-gap: .6em;
-	    row-gap: .15em;
-	    text-align: left;
-	}
+.bridge.inline {
+	display: inline-block;
+}
 
-	/* make the <br> behave like row separators */
-	.bridgehand br {
-	    display: none;
-	} 
 
-	.bridgehand .suit {
-	    text-align: right;
-	    width: 1.2em;
-	}
+.bridgehand {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: center;   /* center the whole hand */
+    column-gap: .6em;
+    row-gap: .15em;
+    text-align: left;
+}
 
-	.bridgehand .cards {
-	    letter-spacing: .08em;
-	}
-/*}*/
+.bridge.inline  .bridgehand {
+    display: inline-block;
+}
 
-.bridgehand.inline  {
+.bridgehand .suit {
+    text-align: right;
+    width: 1.2em;
+}
+
+.bridgehand .cards {
+    letter-spacing: 0.4em;
+}
+
+.bridge.inline .bridgehand  {
 	white-space: nowrap;
 }
-.bridgehand.inline .cards {
-	letter-spacing: .02em;
+.bridge.inline .bridgehand .cards {
+	letter-spacing: 0.1em;
 }
 
-.bridgehand.inline .suit {
+.bridge.inline .bridgehand .suit {
 	width: auto;
 	padding-right:0.2em;
 }

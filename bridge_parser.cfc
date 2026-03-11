@@ -198,7 +198,7 @@ component {
 
 	// parse the full data
 
-	private function parsePBN(text) {
+	private function parsePBN(required string text) {
 
 		// line = re.compile();
 		
@@ -417,12 +417,12 @@ component {
 
 	}
 
-	private function parseHand(handStr) {
+	private function parseHand(required string text) {
 		
 		var suits = false;
 		var handData = {};
 
-		retStr = tidyHand(arguments.handStr);
+		retStr = tidyHand(text=arguments.text);
 
 		/* old school might have 4 lines and an explicit type="hand" set */
 		if (Trim(retStr) eq "-") {
@@ -446,7 +446,7 @@ component {
 		}
 
 		if (not ArrayLen(suits) == 4) {
-			throw(message = 'Hand [#arguments.handStr#]only has ' & ArrayLen(suits) & ' suits',type="bridge");
+			throw(message = 'Hand [#arguments.text#]only has ' & ArrayLen(suits) & ' suits',type="bridge");
 		}
 	   
 		handData['s'] = suits[1];
@@ -457,14 +457,14 @@ component {
 		return handData;
 	}
 
-	private function tidyHand(handStr) {
+	private function tidyHand(required string text) {
 		
 		// # always work with T for 10 no matter what output option
-		arguments.handStr = replace(arguments.handStr, "10","T");
-		arguments.handStr = ucase(arguments.handStr);
-		arguments.handStr = ReReplaceNoCase(arguments.handStr,"[♠♥♦♣SHDC]","","all");
+		arguments.text = replace(arguments.text, "10","T");
+		arguments.text = ucase(arguments.text);
+		arguments.text = ReReplaceNoCase(arguments.text,"[♠♥♦♣SHDC]","","all");
 		
-		return arguments.handStr;
+		return arguments.text;
 	}
 
 	/*
@@ -501,7 +501,6 @@ component {
 
 		parseStyleShortcuts(arguments.styleAtts);
 
-
 		// if we have tags, it's a full PBN type
 		if (ReFind("\[\w+.*?\]",arguments.text)) {
 			arguments.styleAtts["type"] = "pbn";
@@ -519,12 +518,13 @@ component {
 		if (arguments.styleAtts["type"] == "pbn") {
 
 			pbndata = parsePBN(text);
+			
 			retStr = '';
 			
 			options = ['dealer','scoring','vulnerable','lead','contract','result','par','players','positions'];
 			
-			for (i = 1; i lte ArrayLen(options); i+=1) {
-				option = options[i];
+			for (option in options) {
+				
 				if (StructKeyExists(styleAtts,option) AND styleAtts[option] neq 0 and StructKeyExists(pbndata,option)) {
 					if (option == 'dealer') {
 						label = "Dealer " & positionLabel(pbndata[option]);
@@ -553,27 +553,17 @@ component {
 				retStr &= displayAuction(pbndata,arguments.styleAtts);
 			}
 			
-			retStr = "<div class='#classes#'>" & retStr & "</div>";
 		}    
 	 
 		else if (styleAtts["type"] == "hand") {
-			// default for inline is OFF unless turned on earlier
-			// when using the short hand form
-			if (NOT StructKeyExists(styleAtts,"inline")) {
-				styleAtts["inline"] = 0;
-			}
-			local.hand = parseHand(text);
-			retStr = displayHand(hand=local.hand, inline=styleAtts["inline"],standalone=true,classes=classes);
-
+			local.hand = parseHand(text=arguments.text);
+			retStr = displayHand(hand=local.hand);
 		}
 
 		// # displayHand(hand)
-
 		else if (styleAtts["type"] == "suit") {
-
 			local.suit = parseSuitCombo(text);
-			retStr = displaySuitCombo(suit=local.suit,standalone=true,classes=classes);
-			
+			retStr = displaySuitCombo(suit=local.suit);
 		}
 
 		else {
@@ -581,8 +571,10 @@ component {
 			throw(message='Unknown type',type="bridge",extendedinfo=serializeJSON(extendedinfo));
 		}
 
-		retStr = replaceWhiteSpace(retStr);
+		id = arguments.styleAtts.id ? "id=#arguments.sstyleAtts.id#" : "";
 
+		retStr = "<div #id#class='#classes#'>" & retStr & "</div>";
+		
 		return retStr;
 	}
 
@@ -713,11 +705,8 @@ component {
 		return retStr;
 	}
 
-
-	// # Display a simple hand
-	// # inline will output on same line
-
-	private function displayHand(hand,boolean inline=false, boolean standalone=false, classes="") {
+	// Display a hand
+	private function displayHand(hand) {
 
 		var tag = false;
 		var retStr = false;
@@ -725,15 +714,7 @@ component {
 		var suit = false;
 		var suitList = false;
 		
-		// display on one line
-		if (NOT arguments.inline) {
-			tag = "div";
-		}
-		else {
-			tag = "span";
-		}
-
-		retStr = "<" & tag & " class='#arguments.classes#'>";
+		retStr = "<span class='bridgehand'>";
 		
 		suitList = ["s","h","d","c"];
 
@@ -741,16 +722,12 @@ component {
 			throw(message="hand is not struct",type="bridge");
 		}
 
-		for (i = 1;i lte ArrayLen(suitList);i+=1) {
-			suit = suitList[i];
+		for (suit in suitList) {
 			retStr &= "<span class='suit " & suit & "'>" & getSymbol(suit) & "</span>";
 			retStr &= "<span class='cards'>" & suitFormat(arguments.hand[suit]) & "</span>";
-			if (NOT arguments.inline) {
-				retStr &= "<br />\n";
-			}
 		}
 
-		retStr &= "</" & tag & ">";
+		retStr &= "</span>";
 
 		return retStr;
 	}
@@ -781,25 +758,18 @@ component {
 	}
 
 	/**
-	 * @hint Format a single suite for output
+	 * @hint Format a single suit for output
 	 * 
 	 * put 10's back in for ts and lowercase unknowns
-	 * Add space between every letter
-	 * 
+	* 
 	 * @suit  suit string without spaces
 	 */
 	private function suitFormat(string suit) {
 		
-		var retStr = "";
-		var i = false;
+		arguments.suit = replace(arguments.suit, "T","10");
+		arguments.suit = replace(arguments.suit, "X","x");
 
-		for (i = 1; i lte Len(arguments.suit); i+=1) {
-			retStr &= Mid(arguments.suit, i, 1) & " ";
-		}
-		retStr = replace(retStr, "T","10");
-		retStr = replace(retStr, "X","x");
-
-		return trim(retStr);
+		return trim(arguments.suit);
 	}
 
 	// # displayAuction
@@ -1031,7 +1001,7 @@ component {
 
 
 	// # Display a simple suit combo
-	private function displaySuitCombo(required struct suit, string classes="") {
+	private function displaySuitCombo(required struct suit) {
 		
 		var retStr = false;
 		var standclass = "";
@@ -1043,42 +1013,35 @@ component {
 		   noMiddle = true;
 		   colspan = "";
 		}
+		retStr = [];
+		retStr.append("<table class='bridgesuitcombo'>");    
 
-		retStr = "<table class='#arguments.classes#'>\n";    
-
-		retStr &= "<tr><td class='n'#colspan#><span class='cards'>" & suitFormat(arguments.suit['n']) & "</span></td></tr>\n";
+		retStr.append("<tr><td class='n'#colspan#><span class='cards'>" & suitFormat(arguments.suit['n']) & "</span></td></tr>");
 		
 		// # ignore middle row if both void
 		if (not noMiddle) {
-			retStr &= "<tr><td class='w'><span class='cards'>" & suitFormat(arguments.suit['w']) & "</span></td>";
-			retStr &= "<td class='e'><span class='cards'>" & suitFormat(arguments.suit['e']) & "</span></td></tr>\n";
+			retStr.append("<tr><td class='w'><span class='cards'>" & suitFormat(arguments.suit['w']) & "</span></td>");
+			retStr.append("<td class='e'><span class='cards'>" & suitFormat(arguments.suit['e']) & "</span></td></tr>");
 		}
 
-		retStr &= "<tr><td class='s'#colspan#><span class='cards'>" & suitFormat(arguments.suit['s']) & "</span></td></tr>\n";
+		retStr.append("<tr><td class='s'#colspan#><span class='cards'>" & suitFormat(arguments.suit['s']) & "</span></td></tr>");
 		
-		retStr &= "</table>";
+		retStr.append("</table>");
 
-		return retStr;
+		return retStr.toList(newLine());
 	}
 
-	private function parseSuitCombo(dealStr) {
+	private function parseSuitCombo(required string deal) localmode=true {
 		
-		var hasStartPos = false;
-		var startpos = false;
-		var deal = false;
-		var dealData = false;
-		var hand = false;
-		var i = false;
-
-		arguments.dealStr = tidyHand(arguments.dealStr);
+		arguments.deal = tidyHand(arguments.deal);
 		
-		if (ListLen(arguments.dealStr,":") gt 1) {
-			startpos = ListFirst(arguments.dealStr,":");
-			deal = ListLast(arguments.dealStr,":");
+		if (ListLen(arguments.deal,":") gt 1) {
+			startpos = ListFirst(arguments.deal,":");
+			deal = ListLast(arguments.deal,":");
 		}
 		else {
 			startpos = 's';
-			deal = arguments.dealStr;
+			deal = arguments.deal;
 		}
 		
 		deal = ListToArray(deal," #chr(9)#");
