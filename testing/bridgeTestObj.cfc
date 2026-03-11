@@ -4,7 +4,9 @@ component extends="bridge.bridge_parser" {
 		this.flexmark = new markdown.testing.flexmarkTestObj();
 		super.init(jsoupObj = this.flexmark.coldsoupObj);
 		local.dir = getCanonicalPath(getDirectoryFromPath( getCurrentTemplatePath() )) ;
-		this.styles = "<style>" & fileRead( local.dir  & "../assets/css/bridge_styles.css") & "</style>";
+		this.styles = "<style>" & fileRead( local.dir  & "../../clikpage/_assets/css/reset.css");
+		this.styles &= fileRead( local.dir  & "../assets/css/bridge_styles.css") & "</style>";
+		
 
 		this.loggerObj = new logger.logger(debug=1);
 		this.testhand = fileRead( local.dir  & "hands/test_hand2.pbn");
@@ -47,4 +49,17 @@ component extends="bridge.bridge_parser" {
 	public function parsePBN(required string text) {
 		return super.parsePBN(argumentCollection = arguments);
 	}
+
+	public function displayDeal(required struct pbndata, required struct styleAtts) {
+		parseStyleShortcuts(arguments.styleAtts);
+		return super.displayDeal(argumentCollection = arguments);
+	}
+
+	public function displayAuction(required struct pbndata, required struct styleAtts) {
+		parseStyleShortcuts(arguments.styleAtts);
+		return super.displayAuction(argumentCollection = arguments);
+	}
+
+	
+
 }

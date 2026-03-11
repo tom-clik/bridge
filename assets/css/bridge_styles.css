@@ -196,68 +196,52 @@ div.bridgeinfo p {
 }
 
 /* deal diagram */
-div.bridgedeal {
-	min-height: 4em;
-	width:200px;
-	margin:0 auto 12px auto;
-	position:relative;
-	/* leave this  in -- its essential to stop crazy  margin outside
-	 box behaviour*/
-	padding:0.1px;
-	/*border:1px solid #ffffff;*/
+.bridgedeal {
+    display: grid;
+    margin: 1em 0;
+    justify-content: center;   /* center the whole deal */
+    justify-items: center;
+    gap: 10px;
 }
 
-/* the width of a hand in a diagram */
-div.bridgedeal div.dealhand {
-	width:160px;
-}
-/* reduction in vertical gap between different suits */
-.dealhand {
-	line-height: 80%;
+/* top and bottom rows */
+.dealrow.deal-top {
+    display: flex;
+    justify-content: center;
 }
 
-/* N and S suits positioned with flow. E and W are absolute */
-/* h distance for N and S */
-div.bridgedeal div.n ,div.bridgedeal div.s {
-	margin-left:64px;
+/* middle row */
+.dealrow.deal-middle {
+    display: grid;
+    grid-auto-flow: column;    /* W | compass | E */
+    grid-auto-columns: max-content;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
 }
 
-/* v distance for e and w */
-div.bridgedeal div.w, div.bridgedeal div.e {
-	position:absolute;
-	top:3.6em;
+div.bridgedeal  .bridgehand {
+	justify-content: start;
 }
 
-/* This is a prince thing. Doesn't translate into normal printable styles
-*/
-@media print {
-	div.bridgedeal div.w, div.bridgedeal div.e {
-		top:4.6em;
-	}
+div.bridgedeal .hide {
+	display: none;
 }
 
-div.bridgedeal div.w {
-	left:0;
-}
-
-div.bridgedeal div.e {
-	left:150px;
-}
-
-/* To minimise space you can use E and W hands only in the deal diagram
-This will apply a .short class and close every thing up */
-div.bridgedeal.short div.w, div.bridgedeal.short div.e {
-	top:0;
-	margin-top:0;
+div.bridgedeal .cards, div.bridgedeal .suit {
+	line-height: 0.6em;
+	display: inline-block;
+  vertical-align: baseline;
+}  
+div.bridgedeal  .suit {
+    position: relative;
+    top: -0.2em;   /* tweak slightly if needed */
 }
 
 /* Deal rose -- the diagram with the compass points */
 /*font-family: see separate definition */
 
 div.dealrose {
-	/* careful. Margin does 2 things -- top and bottom is for spacing,
-	left margin positions horizontally. Right margin has no effect (see position of div.w above) */
-	margin:6px 0 6px 72px;	
 	font-size:12px;
 }
 
@@ -265,6 +249,12 @@ div.dealrose {
 	div.dealrose {
 		font-size:9pt;
 	}
+}
+
+.dealrose {
+    display: flex;
+    align-items: center;     /* vertical centering */
+    justify-content: center; /* horizontal centering */
 }
 
 /* apply border and background to an inner div to stop funny behaviour */
@@ -316,29 +306,25 @@ div.bridgedeal .re {
 	right:0;
 }
 
-
 /* auction */
 div.bridgeauction {
-	border:1px solid #ffffff;/* leave this in */
 	font-size: 90%;
-	width:220px;
-	margin:0 auto;
 	font-family: var(--auction-font);
+	width: fit-content;
+	margin: 1em auto;          /* center on page */
 }
 
-
-
-/* width exceeds 200 but just apply a negative margin. That way we can just change this
-without having to go back and change everything else */
-div.bridgeauction table.auction {
-	margin:0 -20px 0;
-	width:240px;
-	border-collapse: collapse;
-	border-spacing: 0;
-}
-
+/* compatibility isses */
 div.bridgeauction table {
 	--table-border-width:0;
+}
+
+.bridgeauction .auction {
+    width: auto;
+}
+
+.bridgeauction .notes {
+    width: 100%;             /* match auction table width */
 }
 
 div.bridgeauction table.auction thead {
@@ -362,6 +348,7 @@ div.bridgeauction table.auction tbody tr {
 div.bridgeauction table.auction :is(th, td) > div {
 	position: relative;
 	top:1px;
+	white-space: nowrap;
 }
 
 div.bridgeauction table.auction tbody tr:last-of-type {
@@ -391,28 +378,12 @@ div.bridgeauction.size2 table.auction td {
 	}
 }
 
-/* with just two columns we reduce the width */
-div.bridgeauction.size2 {
-	width:220px;
-}
-
-div.bridgeauction.size2 table.auction {
-	width:100%;
-	margin:0;
-}
-
-div.bridgeauction.size2 table.auction td, div.bridgeauction.size2 table.auction th {
-	/* table width/2 - h_padding */
-	width:50%;
-}
-
 
 @media print {
 	div.bridgeauction table.auction th {
 		line-height: 1;
 	}
 }
-
 
 div.bridgeauction span.suit {
 	font-size: 14px;
@@ -426,15 +397,6 @@ div.bridgeauction span.note {
 
 div.bridgeauction table.notes td {
 	padding:2px 4px 2px 0px;
-}
-div.bridgeauction.size2 table.notes {
-	margin-left:-120px;
-	margin-right:-120px;
-}
-
-div.clearing {
-	height:0.1px;
-	clear: both;
 }
 
 p.tip {

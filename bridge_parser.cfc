@@ -16,8 +16,11 @@ Returns HTML for hand, suit combo, or deal diagram
 
 component {
 
-	public function init(required jsoupObj) {
+	public function init(required jsoupObj, boolean debug=0) {
 		variables.jsoupObj = arguments.jsoupObj; 
+		variables.playerList = ['n','e','w','s'];
+		this.debug = arguments.debug;
+
 		return this;
 	}
 
@@ -382,7 +385,7 @@ component {
 
 	/**
 	 * parse a string like "S:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85"
-	 * into a four key struct (nsew) of bridge hands (also 4key struct -- see parseHand())
+	 * into a four key struct (nsew) of bridge hands (also a 4 key struct -- see parseHand())
 	 * The first position e.g. S: is optional, the default is south.
 	 * 
 	 * @dealStr [description]
@@ -578,15 +581,6 @@ component {
 		return retStr;
 	}
 
-	private function replaceWhiteSpace(inStr) {
-
-		inStr = Replace(inStr,"\t",chr(9),"all");
-		inStr = Replace(inStr,"\n",chr(10),"all");
-
-		return  inStr;
-
-	}
-
 	/**
 	 * Deduce the type from the text either simple hand, simple suit combo, or full deal for anything else
 	 *
@@ -626,94 +620,39 @@ component {
 	}
 
 	// # Display a full deal using the pbndata
-	private function displayDeal(pbndata,styleAtts) {
+	private function displayDeal(pbndata, styleAtts) localmode=true {
 
-		var shortclass = false;
-		var retStr = false;
-		var hideclass = false;
-		var roseStr = false;
-		var player = false;
-		var line = false;
-		var i = false;
-		var playerList = ['n','e','w','s'];
-		var lines = false;
-
-
-		// #need to let css know if there is no north
-		if (NOT FindNoCase('n',arguments.styleAtts['hands'])) {
-			shortclass = " short";
-		}
-		else {
-			shortclass = "";
-		}
-			
-		retStr = "<div class='bridgedeal#shortclass#'>\n";
-		
-		// # display dealrose in middle. 
-		// # hide using css if not required so we keep its spacing
-		
-		if (NOT styleAtts['rose']) {
-			hideclass = " hidden";
-		}
-		else {
-			hideclass = "";
-		}
-
-		roseStr = "\t<div class='dealrose#hideclass#'>\n\t\t<div class='inner'>";
-
-		for (i=1;i lte ArrayLen(playerList);i+=1) {
-			position = playerList[i];
-			roseStr &= "\t\t\t<div class='r#position#'>#ucase(position)#</div>";
-		}
-
-		roseStr &= "\t\t</div>\n\t</div>\n";
+		tab = this.debug ? chr(9) : "";
+		cr = this.debug ? newLine() : "";
 
 		logger("Display hands for #arguments.styleAtts['hands']#","i","bridge");
 
 		// # display hands
-		for (i=1;i lte ArrayLen(playerList);i+=1) {
-
-			player = playerList[i];
-
-			// # NS hands flow in normal position. EW are positioned absolutely
-			// # we do the first three, then the deal rose, then south.
-
-			if (findNoCase(player,arguments.styleAtts['hands'])) {
-				retStr &= "\t<div class='dealhand " & player & "'>\n";
-				mydeal = displayHand(pbndata['deal'][player],False);
-				// # format source code nicely...
-
-				lines = ListToArray(mydeal, chr(10));
-				for (j=1;j lte ArrayLen(lines);j+=1){
-					retStr &= "\t\t" & lines[j] & "\n";
-				}
-
-				retStr &= "\t</div>\n";
-			}
-			else {
-				logger("#player# not found in hands","i","bridge");
-			}
-
-			// # add dealrose after w
-			if (arguments.styleAtts['rose'] and player == "w") {
-				retStr &= roseStr;
-			}
+		handsHtml = {};
+		for (player in variables.playerList) {
+			// TODO: better logic. Need space for E or W if we are showing one of them and also a N or S
+			// May well be better to canonicalise the "hands" and add all the permutations to CSS
+			show = findNoCase(player,arguments.styleAtts['hands']) ? "" : " hide";
+			handsHtml[player] = "#tab#<div class='dealhand " & player & show & "'>#cr#";
+			handsHtml[player] &= displayHand( pbndata['deal'][player] );
+			handsHtml[player] &= "#tab#</div>#cr#";
+			
 		}
 
-		retStr &= "\n</div>\n";
+		rosehtml = styleAtts.rose ? dealRose() : "";
+
+		retStr = "<div class='bridgedeal'>#cr#";
+		retStr &= "#tab#<div class='dealrow deal-top'>#handsHtml.n#</div>#cr#";
+		retStr &= "#tab#<div class='dealrow deal-middle'>#handsHtml.w##rosehtml##handsHtml.e#</div>#cr#";
+		retStr &= "#tab#<div class='dealrow deal-top'>#handsHtml.s#</div>#cr#";
+		retStr &= "#cr#</div>#cr#";
 
 		return retStr;
 	}
 
 	// Display a hand
-	private function displayHand(hand) {
+	private function displayHand(hand) localmode=true {
 
-		var tag = false;
-		var retStr = false;
-		var i = false;
-		var suit = false;
-		var suitList = false;
-		
 		retStr = "<span class='bridgehand'>";
 		
 		suitList = ["s","h","d","c"];
@@ -730,6 +669,18 @@ component {
 		retStr &= "</span>";
 
 		return retStr;
+	}
+
+	private string function dealRose() {
+		
+		var roseStr = "#tab#<div class='dealrose'>#cr##tab##tab#<div class='inner'>";
+
+		for (position in variables.playerList) {
+			roseStr &= "#tab##tab##tab#<div class='r#position#'>#ucase(position)#</div>";
+		}
+
+		roseStr &= "#tab##tab#</div>#cr##tab#</div>#cr#";
+		return roseStr
 	}
 
 	// # getSymbol
@@ -774,21 +725,10 @@ component {
 
 	// # displayAuction
 
-	private function displayAuction(pbndata, styleAtts) {
+	private function displayAuction(pbndata, styleAtts) localmode=true {
 
-		var retStr = false;
-		var roomStyle = false;
-		var player = false;
-		var lenclass = false;
-		var bidder = false;
-		var rownum = false;
-		var playerList = false;
-		var i = false;
-		var backList = false;
-		var oddeven = false;
-		var notestring = false;
-		var note = false;
-		var temp = false;
+		tab = this.debug ? chr(9) : "";
+		cr = this.debug ? newLine() : "";
 
 		// # default values
 		// ## default dealer always south
@@ -843,26 +783,26 @@ component {
 			lenclass = " size4";
 		}
 
-		retStr = "<div class='bridgeauction#roomStyle##lenclass#'>\n";
-		retStr &= "\t<table class='auction'>\n";
+		retStr = "<div class='bridgeauction#roomStyle##lenclass#'>#cr#";
+		retStr &= "#tab#<table class='auction'>#cr#";
 
 		playerList = ['South','West','North','East'];
 
 		// # Header rows with positions and/or names
-		retStr &= "\t\t<thead>\n";
+		retStr &= "#tab##tab#<thead>#cr#";
 		
-			retStr &= "\t\t\t<tr>";
+			retStr &= "#tab##tab##tab#<tr>";
 			for (i=1; i lte ArrayLen(playerList); i += 1) {
 				player = playerList[i];
 				if (FindNoCase(left(player,1),arguments.styleAtts['auction'])) {
 					retStr &= "<th  class='#player#'><div>#arguments.pbndata[player]#</div></th>";
 				}
 			}
-			retStr &= "</tr>\n";
+			retStr &= "</tr>#cr#";
 		
-		retStr &= "\t\t</thead>\n";
+		retStr &= "#tab##tab#</thead>#cr#";
 		
-		retStr &= "\t\t<tbody>\n";
+		retStr &= "#tab##tab#<tbody>#cr#";
 
 		// # Start auction rows
 		
@@ -893,7 +833,7 @@ component {
 				oddeven = 'odd';
 			}
 			
-			retStr &= "\t\t\t<tr class='#oddeven#'>\n\t\t\t\t";
+			retStr &= "#tab##tab##tab#<tr class='#oddeven#'>#cr##tab##tab##tab##tab#";
 
 			try{
 				for (i=1; i lte 4; i += 1) {
@@ -927,10 +867,10 @@ component {
                     message      = "Can't display auction:" & e.message
                 );
             }
-			retStr &= "\n\t\t\t</tr>\n";
+			retStr &= "#cr##tab##tab##tab#</tr>#cr#";
 		}
 
-		retStr &= "\t\t</tbody>\n\t</table>\n\n";
+		retStr &= "#tab##tab#</tbody>#cr##tab#</table>#cr##cr#";
 
 		// # Add list of notes in new table
 		
@@ -939,17 +879,17 @@ component {
 		}
 
 		if (arraylen(arguments.pbndata["notes"])) {
-			retStr &= "\t<table class='notes'>\n";
+			retStr &= "#tab#<table class='notes'>#cr#";
 			
 			for (i=1; i lte ArrayLen(arguments.pbndata['notes']); i += 1) {
 				note = arguments.pbndata["notes"][i];
-				retStr &= "\t\t<tr><td>(#note.marker#)</td><td>#note.note#</td></tr>\n";
+				retStr &= "#tab##tab#<tr><td>(#note.marker#)</td><td>#note.note#</td></tr>#cr#";
 			}
 
-			retStr &= "\t</table>\n";
+			retStr &= "#tab#</table>#cr#";
 		}
 
-		retStr &= "</div>\n";
+		retStr &= "</div>#cr#";
 
 
 		return retStr;
