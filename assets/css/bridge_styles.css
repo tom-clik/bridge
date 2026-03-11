@@ -26,18 +26,61 @@ p.bridge  {
 	text-align: center !important;
 }
 
+/*@media screen {*/
+	.bridgehand:not(.inline) {
+	    display: grid;
+	    grid-template-columns: auto auto;
+	    justify-content: center;   /* center the whole hand */
+	    column-gap: .6em;
+	    row-gap: .15em;
+	    text-align: left;
+	}
+
+	/* make the <br> behave like row separators */
+	.bridgehand br {
+	    display: none;
+	} 
+
+	.bridgehand .suit {
+	    text-align: right;
+	    width: 1.2em;
+	}
+
+	.bridgehand .cards {
+	    letter-spacing: .08em;
+	}
+/*}*/
+
+.bridgehand.inline  {
+	white-space: nowrap;
+}
+.bridgehand.inline .cards {
+	letter-spacing: .02em;
+}
+
+.bridgehand.inline .suit {
+	width: auto;
+	padding-right:0.2em;
+}
+
+
+@media print {
+.bridgehand + .bridgefull {
+	page-break-before: avoid;
+}
+}
 /* width and centering for suits and hands on their own */
-.bridgehand.standalone  {
+.dealhand.standalone  {
 	display:block;
 	max-width:200px;
 	margin:1em auto;
 }
 
-.bridgehand:not(.vertical) {
+.dealhand:not(.vertical) {
 	white-space: nowrap;
 }
 
-.bridgehand.vertical {
+.dealhand.vertical {
 	display: grid;
 	grid-template-columns: max-content  max-content;
 	grid-gap:4px 0 ;
@@ -92,10 +135,11 @@ span.suit {
 	font-size: 14px;
 }
 
-.bridgehand span.suit {
+.dealhand span.suit {
 	padding:2px;
+	width:12px;
 }
-.bridgehand span.suit.c {
+.dealhand span.suit.c {
 	padding-right:3px;
 }
 
@@ -106,12 +150,12 @@ span.suit {
 }
 
 /* inconsistency here */
-/*.hand span.suit,.bridgehand span.suit {
+/*.hand span.suit,.dealhand n span.suit {
 	width:0.8em;
 }
 */
 @media print {
-	.hand span.suit,.bridgehand span.suit {
+	.hand span.suit,.dealhand span.suit {
 		width:10pt;
 	}
 }
@@ -166,7 +210,7 @@ div.bridgedeal div.dealhand {
 	width:160px;
 }
 /* reduction in vertical gap between different suits */
-.bridgehand {
+.dealhand {
 	line-height: 80%;
 }
 
@@ -401,4 +445,35 @@ p.tip > span:first-of-type {
 	display: inline-block;
 	width: 2em;
 	font-weight: bold;
+}
+
+@media print {
+	dl {
+		break-inside: avoid;
+	}
+}
+
+dl.tableish {
+  margin-top:1em;
+  border-top: 1px solid #ddd;
+  --dl-gap: 0px;
+}
+
+dl.tableish dt,
+dl.tableish dd {
+  margin: 0;
+  padding: 0.5em 0.75em;
+  border-bottom: 1px solid #ddd;
+}
+
+/* subtle alternating background */
+dl.tableish dt:first-of-type,
+dl.tableish dt:first-of-type + dd {
+ font-weight: bold;
+}
+
+/* subtle alternating background */
+dl.tableish dt:nth-of-type(even),
+dl.tableish dd:nth-of-type(even) {
+  background: #fafafa;
 }

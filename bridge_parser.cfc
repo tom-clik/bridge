@@ -32,18 +32,11 @@ component {
 		if ( arguments.basepath != "" && right(arguments.basepath,1) != "/" ) {
 			arguments.basepath &= "/";
 		}
-		local.class = arguments.node.attr("class");
-
+		
 		local.tagAtts = variables.jsoupObj.getAttributes(arguments.node);
-		if (local.class != "") {
-			local.tagAtts["class"] = local.class;
-		}
-
+		
 		if ( StructKeyExists(local.tagAtts,"file") ) {
 			try {
-				// if ( Left(local.tagAtts.file,4) == "http" ) {
-				//     local.tagAtts.file = arguments.basepath & local.tagAtts.file;
-				// }
 				local.tagContents = FileRead( getCanonicalPath( arguments.basepath & local.tagAtts.file) );
 			} 
 			catch (filemissing cfcatch) {
@@ -54,7 +47,7 @@ component {
 		}
 
 		try {
-			retVal = parseBridgeData(text=local.tagContents,styleAtts =local.tagAtts);
+			retVal = parseBridgeData(text=local.tagContents,styleAtts = local.tagAtts);
 		}
 		catch (any e) {
 			local.extendedinfo = {"error"=e,"tagAtts"=local.tagAtts,"text"=local.tagContents};
@@ -111,23 +104,15 @@ component {
 	 * The numbers can be 0, 2, or 4. These will adjust "deal" and "auction" settings.
 	 *
 	 * `info` will set  “scoring”, “vulnerable”, and “dealer” to true
-	 *
-	 * 
 	 * 
 	 */
-	private function parseStyleShortcuts(styles) {
+	private function parseStyleShortcuts(required struct styles) localmode=true {
 		
-		var style = false;
-		var numsStr = false;
-		var tag = false;
-		var options = false;
-		var tagList = false;
-		var i = false;
-		
-		local.tagsTemp = ["hands","auction"];
+		compassTags = ["hands","auction"];
 
-		if (StructKeyExists(arguments.styles,'style')) {
-			style = arguments.styles['style'];
+		if ( StructKeyExists(arguments.styles,'style') ) {
+			style = ListToArray( arguments.styles['style'], "_" );
+			
 			// # style = hands(_auction)(_info)
 			// # where hands is 0, 2 or 4, auction is 0,2 or 4
 			// # and info is 1,0 or all. auction and info default to 0
@@ -135,25 +120,25 @@ component {
 			numsStr = {};
 
 			/* first Item is hands */
-			numsStr['hands'] = ListFirst(arguments.styles.style,"_");
+			numsStr['hands'] = style[1];
 			/* second item is auction */
-			if (ListLen(arguments.styles.style,"_") gt 1) {
-				numsStr['auction'] = ListGetAt(arguments.styles.style,2,"_");
+			if ( style.len()  gt 1) {
+				numsStr['auction'] = style[2];
 			}
 			else {
 				numsStr['auction'] = '0';
 			}
 			/* third item is info */
-			if (ListLen(arguments.styles.style,"_") gt 2) {
-				numsStr['info'] = ListGetAt(arguments.styles.style,3,"_");
+			if (style.len()  gt 2) {
+				arguments.styles['info'] = style[3];
 			}
 			else {
-				numsStr['info'] = '0';
+				arguments.styles['info'] = '0';
 			}
 
 			// #convert number to string value. 2 = ns, 4=nsew
 			
-			for (tag in local.tagsTemp) {
+			for (tag in compassTags) {
 				
 				if (numsStr[tag] == '2') {
 					arguments.styles[tag] = 'ns';
@@ -174,41 +159,31 @@ component {
 			}
 		}
 
+		else {
+			StructAppend(arguments.styles, {"info"=false}, false);
+		}
+
 		// # info = boolean for basic tags, 'all' for full tags
 		// # remember these will only show if the tag is defined.
 		
 		// list of all options
-		options = ['dealer','scoring','vulnerable','lead','contract','result','par','players','positions'];
+		options = ['dealer'=1,'scoring'=1,'vulnerable'=1,'lead'=0,'contract'=0,'result'=0,'par'=0,'players'=0,'positions'=0];
 
-		// list of tags to turn on if not defined explicitly
+		// create list of tags to turn on if not defined explicitly
 		tagList = [];
 		
-		if (StructKeyExists(arguments.styles,'info')) {
-			if (arguments.styles['info'] == 'all') {
-				tagList = Duplicate(options);
-			}
-			else if (styles['info']) {
-				tagList = ListToArray("#options[1]#,#options[2]#,#options[3]#");
-			}
-		}
-
-
-		for (tag in options) {
+		// go through each option and check if it was supplied explicitly or by using info short cut
+		loop collection=options key="tag" value="basic" {
 			
-			if (not StructKeyExists(arguments.styles,tag)) {
-				arguments.styles[tag] = (ArrayFind(tagList,tag) AND 1);
+			if ( StructKeyExists(arguments.styles, tag)) {
+				arguments.styles[tag] = isValid("boolean",arguments.styles[tag]) ?  ( arguments.styles[tag] && true ) : 0;
 			}
 			else {
-				try {
-					arguments.styles[tag] = arguments.styles[tag] AND 1;
-				}
-				catch (any e) {
-					arguments.styles[tag] = 0;
-				}
+				arguments.styles[tag] = (arguments.styles['info'] eq "all" OR arguments.styles['info'] && basic );
 			}
 		}
 
-		for (tag IN local.tagsTemp) {
+		for (tag IN compassTags) {
 			if (NOT StructKeyExists(arguments.styles,tag)) {
 				styles[tag] = 'nsew';
 			}
@@ -406,18 +381,14 @@ component {
 
 
 	/**
-	 * parse a strin like "S:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85"
+	 * parse a string like "S:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85"
 	 * into a four key struct (nsew) of bridge hands (also 4key struct -- see parseHand())
 	 * The first position e.g. S: is optional, the default is south.
 	 * 
 	 * @dealStr [description]
 	 */
-	private function parseDealData(dealStr) {
+	private function parseDealData(required string dealStr) localmode=true {
 		
-		var startpos = false;
-		var deal = false;
-		var startpos = false;
-
 		if (ListLen(arguments.dealStr,":") gt 1) {
 			startpos = ListFirst(arguments.dealStr,":");
 			deal = ListLast(arguments.dealStr,":");
@@ -429,14 +400,16 @@ component {
 
 		deal = ListToArray(deal, " #chr(13)#");
 		dealData ={};
-		dealData['n']="";
-		dealData['s']="";
-		dealData['w']="";
-		dealData['e']="";
+		dealData['n']={"n"="-","s"="-","e"="-","w"="-"};
+		dealData['s']={"n"="-","s"="-","e"="-","w"="-"};
+		dealData['w']={"n"="-","s"="-","e"="-","w"="-"};
+		dealData['e']={"n"="-","s"="-","e"="-","w"="-"};
 		
 		for (i = 1; i lte ArrayLen(deal); i+= 1){
 			hand = deal[i];
-			dealData[startpos] = parseHand(hand);
+			if (ListLen(hand,".") gt 2) {
+				dealData[startpos] = parseHand(hand);
+			}
 			startpos = getNextPosition(startpos);
 		}
 
@@ -527,7 +500,8 @@ component {
 		var label = false;
 
 		parseStyleShortcuts(arguments.styleAtts);
-		
+
+
 		// if we have tags, it's a full PBN type
 		if (ReFind("\[\w+.*?\]",arguments.text)) {
 			arguments.styleAtts["type"] = "pbn";
@@ -536,33 +510,8 @@ component {
 		// # short form options
 		if (not StructKeyExists(arguments.styleAtts,'type')) {
 			
-			// First cope with legacy hand format
-			arguments.text = reReplace(arguments.text, "\s*[♥♦♣]\s*", ".", "all");
-			arguments.text = reReplace(arguments.text, "\s*♠\s*", "", "all");
-
-			if (REFindNoCase("^\s*[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s*$",arguments.text)
-				OR REFindNoCase("^\s*[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s*$",arguments.text)
-				) {
-				arguments.styleAtts["type"] = "suit";
-			}
-
-			// # 3. we have a single hand with dots
-			//re.match(,text, re.IGNORECASE)
-			else if (REFindNoCase("^\s*[AKQJTX\d\-]*\.[AKQJTX\d\-]*\.[AKQJTX\d\-]*\.[AKQJTX\d\-]*\s*$",arguments.text)) {
-				arguments.styleAtts["type"] = "hand";
-				// # inline true if it's one one line
-				if (not StructKeyExists(arguments.styleAtts,'inline')) {
-					if (find(chr(10),arguments.text)) {
-						arguments.styleAtts["inline"] = False;
-					}
-					else {
-						arguments.styleAtts["inline"] = True;
-					}
-				}
-			}
-			else {
-				arguments.styleAtts["type"] = "unknown";
-			}
+			arguments.text =  checkHandType( text=arguments.text, styleAtts=arguments.styleAtts);
+			
 		}
 
 		var classes = getClasses(arguments.styleAtts);
@@ -644,6 +593,44 @@ component {
 
 		return  inStr;
 
+	}
+
+	/**
+	 * Deduce the type from the text either simple hand, simple suit combo, or full deal for anything else
+	 *
+	 * Checks the text and returns cleaned copy.
+	 */
+	private string function checkHandType(required text, required struct styleAtts) {
+
+		// First cope with legacy hand format
+		arguments.text = reReplace(arguments.text, "\s*[♥♦♣]\s*", ".", "all");
+		arguments.text = reReplace(arguments.text, "\s*♠\s*", "", "all");
+
+		if (REFindNoCase("^\s*[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s*$",arguments.text)
+			OR REFindNoCase("^\s*[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s*$",arguments.text)
+			) {
+			arguments.styleAtts["type"] = "suit";
+		}
+
+		// # 3. we have a single hand with dots
+		//re.match(,text, re.IGNORECASE)
+		else if (REFindNoCase("^\s*[AKQJTX\d\-]*\.[AKQJTX\d\-]*\.[AKQJTX\d\-]*\.[AKQJTX\d\-]*\s*$",arguments.text)) {
+			arguments.styleAtts["type"] = "hand";
+			// # inline true if it's one one line
+			if (not StructKeyExists(arguments.styleAtts,'inline')) {
+				if (find(chr(10),arguments.text)) {
+					arguments.styleAtts["inline"] = False;
+				}
+				else {
+					arguments.styleAtts["inline"] = True;
+				}
+			}
+		}
+		else {
+			arguments.styleAtts["type"] = "unknown";
+		}
+
+		return arguments.text;
 	}
 
 	// # Display a full deal using the pbndata

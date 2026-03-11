@@ -9,8 +9,7 @@ http://tpc25.clikpic.com/customtags/bridge/bridge_parser_test.cfm
 --->
 
 <cfscript>
-coldsoupObj = new coldsoup.coldsoup(server.system.environment.javalib & "\jsoup-1.20.1.jar");
-bridge = new bridge.bridge_parser(jsoupObj=coldsoupObj);
+bridge = new bridge.testing.bridgeTestObj();
 logger = new logger.logger(debug=1);
 bridge.loggerObj = logger;
 path = getDirectoryFromPath(getCurrentTemplatePath());
@@ -41,11 +40,10 @@ W:542 kq7 jt986 A3
 <h2>Full PBN</h2>
 <bridge id="hand1_4" file="hands/test_hand2.pbn" info="yes" style="2_4" lead="yes"></bridge> 
  --->
-
-<bridge>AK874 6532</bridge>
-
-<bridge>AKJ74 6532</bridge>
-
+<!--- <bridge>
+AKQJ1098765432...
+</bridge>
+ --->
 <!--- <h2>Notes</h2>
 <bridge style="0_2" north="Partner" south="You">
 [auction]
@@ -54,12 +52,19 @@ W:542 kq7 jt986 A3
 ?
 [note "1:waiting"]
 [note "2:positive"]	  
-</bridge> --->
+</bridge> --->                          
 
+<bridge id="test" class="testclass" deal="2" auction="EW">
+[Deal "S:JT3.9.AQ75.AT643"]
+[South "Partner"]
+[North "You"]
+[Auction "S"]
+1C P C
+</bridge>
 </cfsavecontent>
 
 <cfscript>
-data = coldsoupObj.parse(bridgeHands);
+data = bridge.flexmark.coldsoupObj.parse(bridgeHands);
 hands = data.select("bridge");
 for (hand in hands) {
 	html = bridge.bridgeTag(hand, path);

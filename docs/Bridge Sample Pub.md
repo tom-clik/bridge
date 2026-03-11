@@ -23,15 +23,9 @@ A simple hand holding can also be shown using the following syntax. 10s are repr
 
 Three dots are required. A void in spades or clubs will then mean the hand starts or ends with a dot. E.g. `.akq784.kq76543.`
 
-Note that the default is to show the hand inline. The simplest way to change this is to add a vertical attribute to show it in a column.
+Note that the default is to show the hand in a column. The simplest way to change this is to remove the whitespace.
 
-<bridge vertical>
-akq78.5634.kq7.7
-</bridge>
-
-    <bridge vertical>
-       akq78.5634.kq7.7
-    </bridge>
+    <bridge>akq78.5634.kq7.7</bridge>
 
 
 ## A simple suit combination
@@ -84,6 +78,8 @@ PBN data consists of the main data fields and then the auction. Note that we don
 4NT =2= X    Pass   Pass
 5C      X    5H     X
 Pass    Pass Pass
+[Note "1:weak jump shift"]
+[Note "2:Key card blackwood"]
 </bridge>
 
     <bridge deal="EN">
@@ -97,6 +93,8 @@ Pass    Pass Pass
     4NT =2= X    Pass   Pass
     5C      X    5H     X
     Pass    Pass Pass
+    [Note "1:weak jump shift"]
+    [Note "2:Key card blackwood"]
     </bridge>
 
 ### The deal tag

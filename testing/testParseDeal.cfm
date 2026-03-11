@@ -5,9 +5,7 @@ logger = new logger.logger(debug=1);
 bridge.loggerObj = logger;
 path = getDirectoryFromPath(getCurrentTemplatePath());
 
-auction = "1♣ - 1♠ -
-4♠ - 4NT -
-5♥ - ?  ";
+deal = "S:.63.AKQ987.A9732 - J973.J98742.3.K4";
 
-dump( bridge.parseAuction(auction) );
+dump( bridge.parseDealData(deal) );
 </cfscript>
