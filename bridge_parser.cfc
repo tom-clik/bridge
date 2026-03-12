@@ -68,14 +68,7 @@ component {
 	 */
 	private function getClasses(required struct styles) localmode="true" {
 		
-		// applied to all
-		classes = {
-			"hand"="bridgehand",
-			"pbn" ="bridgefull",
-			"suit"="bridgesuitcombo"
-		}
-
-		className = classes[arguments.styles.type] ? : "unknown";
+		className = "bridge";
 
 		// user applied classes
 		if (  arguments.styles.keyExists("class" ) ) {
@@ -111,19 +104,19 @@ component {
 	 */
 	private function parseStyleShortcuts(required struct styles) localmode=true {
 		
-		compassTags = ["hands","auction"];
+		compassTags = ["deal","auction"];
 
 		if ( StructKeyExists(arguments.styles,'style') ) {
 			style = ListToArray( arguments.styles['style'], "_" );
 			
-			// # style = hands(_auction)(_info)
-			// # where hands is 0, 2 or 4, auction is 0,2 or 4
+			// # style = deal(_auction)(_info)
+			// # where deal is 0, 2 or 4, auction is 0,2 or 4
 			// # and info is 1,0 or all. auction and info default to 0
 			
 			numsStr = {};
 
-			/* first Item is hands */
-			numsStr['hands'] = style[1];
+			/* first Item is deal */
+			numsStr['deal'] = style[1];
 			/* second item is auction */
 			if ( style.len()  gt 1) {
 				numsStr['auction'] = style[2];
@@ -194,78 +187,178 @@ component {
 
 		 // # show deal rose in middle? Default is yes with more than one hand to show
 		if (NOT StructKeyExists(arguments.styles,'rose')) {
-			arguments.styles['rose'] = (len(arguments.styles['hands']) gt 1);
+			arguments.styles['rose'] = (len(arguments.styles['deal']) gt 1);
 		}
 	 
 	}
 
-	// parse the full data
-
-	private function parsePBN(required string text) {
-
-		// line = re.compile();
+	/**
+		@hint parse the full data 
 		
-		var rows = ListToArray(text,chr(10));
-		var currenttag = "";
-		var tagData = "";
-		var tagText = "";
-		var pbnData = {};
-		var i = false;
+		First loop over the text and create a struct keyed by main tag name
+
+		Each value is another struct with key attibributes and text
 		
-		for (i=1;i lte ArrayLen(rows);i+=1) {
-			row = Trim(rows[i]);
-		   
-			// # most tags are one-liners like [dealer ""]. In this case we just get the data,
-			// # some though are multi lines like auction. If this is the case we append the
-			// # line to the text of the previous tag. 
 
-			if (REFind("\[\w+(\s+"".*?"")?\]",row)) {
-				currenttag = Trim(ListFirst(row,"[]"""));    
-				if (ListLen(row,"[]""") gt 1) {
-					tagData = Trim(ListLast(row,"[]"""));
-				} else {
-					tagData = "";
-				}
+	*/
 
-				if (tagData neq "" AND NOT ListFindNoCase("auction,play",currenttag)) {
-					// # special case for notes -- we store an Array of structs with keys note and marker
-					// e.g. [note "1:12-14"]
-					if (currenttag == 'note') {
-						if (not StructKeyExists(pbnData,'notes')) {
-							pbnData['notes'] = ArrayNew(1);
-						}
-						note = {};
-						note['marker'] = ListFirst(tagData,":");
-						note['note'] = ListRest(tagData,":");
-						ArrayAppend(pbnData['notes'],note);
+	private function parsePBN(required string text) localmode=true {
+
+		data = parseTaggedText(text);
+
+		pbnData = {};
+		currentTag = "";
+
+		for ( tag in data ) {
+			
+			switch (tag.tag) {
+				case "deal":
+					pbnData["deal"] = parseDealData(tag.attributes);
+					break;
+				case "auction":
+					if ( tag.attributes neq "")  {
+						pbnData["dealer"] = tag.attributes;
 					}
-					else {
-						pbnData[currenttag] = tagData;
+					pbnData["auction"] = parseAuction( tag.text );
+					break;
+				case "note":
+					// ignore play notes for now
+					if ( currentTag != "auction") continue;
+					if (not StructKeyExists(pbnData,'notes')) {
+						pbnData['notes'] = ArrayNew(1);
 					}
-				}
-			}
-			else if (currenttag neq "") {
-				if (StructKeyExists(pbnData,currenttag)) {
-					pbnData[currenttag] &= chr(10) & row;
-				}
-				else {
-					pbnData[currenttag] = row;
-				}
-			}
-		}
+					note = {};
+					note['marker'] = ListFirst(tag.attributes,":");
+					note['note'] = ListRest(tag.attributes,":");
+					ArrayAppend(pbnData['notes'],note);
+					break;
+				default:
+					pbnData[tag.tag] = tag.attributes;
 
-		for (tag in pbnData) {
-			if (tag == "auction") {
-				pbnData[tag] = parseAuction(pbnData[tag]);
 			}
-			else if (tag == "deal") {
-				pbnData[tag] = parseDealData(pbnData[tag]);
-			}
+
+			currentTag = tag.tag;
 		}
 		
 		return pbnData;
 	}
 
+	/**
+	 * @hint Convert tagged text to array
+	 *
+	 * Values are struct with keys tag, attributes, and text
+	 * Can't convert to struct as some keys are duplicate (e.g. note)
+	 *
+	 * Also note may belong to auction or play
+	 * 
+	 */
+	
+	array function parseTaggedText( required string input) {
+	    var result = [];
+	    var lenInput = len(arguments.input);
+
+	    var i = 1;
+	    var ch = "";
+
+	    var inTag = false;
+	    var inQuote = false;
+	    var readingTagName = false;
+	    var readingAttribute = false;
+
+	    var currentTagName = "";
+	    var currentAttributes = "";
+	    var currentText = "";
+
+	    var currentKey = "";
+
+	    for (i = 1; i <= lenInput; i++) {
+	        ch = mid(arguments.input, i, 1);
+
+	        // Start of a new tag
+	        if (!inTag && ch == "[") {
+	            // Save previous tag before starting new one
+	            if (len(currentKey)) {
+	                result.append( {
+	                    tag = currentKey,
+	                    attributes = currentAttributes,
+	                    text = trim(currentText)
+	                });
+	            }
+
+	            // Reset state for new tag
+	            inTag = true;
+	            inQuote = false;
+	            readingTagName = true;
+	            readingAttribute = false;
+
+	            currentTagName = "";
+	            currentAttributes = "";
+	            currentText = "";
+	            currentKey = "";
+
+	            continue;
+	        }
+
+	        if (inTag) {
+	            // End of tag
+	            if (!inQuote && ch == "]") {
+	                inTag = false;
+	                readingTagName = false;
+	                readingAttribute = false;
+
+	                currentKey = lCase( currentTagName );
+	                continue;
+	            }
+
+	            // Quote handling for attributes
+	            if (ch == '"') {
+	                inQuote = !inQuote;
+
+	                if (inQuote) {
+	                    readingTagName = false;
+	                    readingAttribute = true;
+	                }
+	                else {
+	                    readingAttribute = false;
+	                }
+
+	                continue;
+	            }
+
+	            // Build tag name until first space or quote
+	            if (readingTagName) {
+	                if (ch != " " && ch != chr(9) && ch != chr(10) && ch != chr(13)) {
+	                    currentTagName &= ch;
+	                }
+	                continue;
+	            }
+
+	            // Build attribute text only while inside quotes
+	            if (readingAttribute && inQuote) {
+	                currentAttributes &= ch;
+	                continue;
+	            }
+
+	            continue;
+	        }
+
+	        // Outside tag, this belongs to current tag's text
+	        if (len(currentKey)) {
+	            currentText &= ch;
+	        }
+	    }
+
+	    // Save the final tag
+	    if (len(currentKey)) {
+	        result.append( {
+	            tag = currentKey,
+	            attributes = currentAttributes,
+	            text = trim(currentText)
+	        });
+	    }
+
+	    return result;
+	}
 
 	private function getScoringStr(str) {
 		
@@ -403,14 +496,13 @@ component {
 
 		deal = ListToArray(deal, " #chr(13)#");
 		dealData ={};
-		dealData['n']={"n"="-","s"="-","e"="-","w"="-"};
-		dealData['s']={"n"="-","s"="-","e"="-","w"="-"};
-		dealData['w']={"n"="-","s"="-","e"="-","w"="-"};
-		dealData['e']={"n"="-","s"="-","e"="-","w"="-"};
+		dealData['n']={"s"="-","h"="-","d"="-","c"="-"};
+		dealData['s']={"s"="-","h"="-","d"="-","c"="-"};
+		dealData['w']={"s"="-","h"="-","d"="-","c"="-"};
+		dealData['e']={"s"="-","h"="-","d"="-","c"="-"};
 		
-		for (i = 1; i lte ArrayLen(deal); i+= 1){
-			hand = deal[i];
-			if (ListLen(hand,".") gt 2) {
+		for (hand in deal){
+			if ( Trim(hand) neq "-" ) {
 				dealData[startpos] = parseHand(hand);
 			}
 			startpos = getNextPosition(startpos);
@@ -427,27 +519,18 @@ component {
 
 		retStr = tidyHand(text=arguments.text);
 
-		/* old school might have 4 lines and an explicit type="hand" set */
-		if (Trim(retStr) eq "-") {
-			return handData;
-		}
-		else if (Find(".",retStr)) {
-			if (Left(retStr,1) eq '.') {
-				retStr = '-' & retStr;
-			}
-
-			if (Right(retStr,1) eq '.') {
-				retStr = retStr & '-';
-			}
-			
-			retStr  = replace(retStr,"..",".-.");
-			
-			suits = ListToArray(retStr,".");
-		}
-		else {
-			suits = ListToArray(retStr,"#chr(10)#,#chr(13)#, ");
+		if (Left(retStr,1) eq '.') {
+			retStr = '-' & retStr;
 		}
 
+		if (Right(retStr,1) eq '.') {
+			retStr = retStr & '-';
+		}
+		
+		retStr  = replace(retStr,"..",".-.");
+		
+		suits = ListToArray(retStr,".");
+		
 		if (not ArrayLen(suits) == 4) {
 			throw(message = 'Hand [#arguments.text#]only has ' & ArrayLen(suits) & ' suits',type="bridge");
 		}
@@ -493,14 +576,7 @@ component {
 	/* The main function. Takes the PBN or shorthand data and the styles as a Struct
 	Normally you call fnBridgeTag to parse this info from a tag and pass it to this function */
 
-	private function parseBridgeData(text,styleAtts={}) {
-
-		var options = false;
-		var option = false;
-		var retStr = false;
-		var pbndata = false;
-		var i = false;
-		var label = false;
+	private function parseBridgeData(text,styleAtts={}) localmode=true {
 
 		parseStyleShortcuts(arguments.styleAtts);
 
@@ -549,7 +625,7 @@ component {
 				retStr = "<div class='bridgeinfo'>" & retStr & '</div>';
 			}
 
-			if (arguments.styleAtts['hands'] neq '0') {
+			if (arguments.styleAtts['deal'] neq '0') {
 				retStr &= displayDeal(pbndata,arguments.styleAtts);
 			}
 			if (arguments.styleAtts['auction'] neq '0') {
@@ -574,7 +650,7 @@ component {
 			throw(message='Unknown type',type="bridge",extendedinfo=serializeJSON(extendedinfo));
 		}
 
-		id = arguments.styleAtts.id ? "id=#arguments.sstyleAtts.id#" : "";
+		id = arguments.styleAtts.keyExists("id") ? "id=#arguments.styleAtts.id# " : "";
 
 		retStr = "<div #id#class='#classes#'>" & retStr & "</div>";
 		
@@ -625,14 +701,14 @@ component {
 		tab = this.debug ? chr(9) : "";
 		cr = this.debug ? newLine() : "";
 
-		logger("Display hands for #arguments.styleAtts['hands']#","i","bridge");
+		logger("Display hands for #arguments.styleAtts['deal']#","i","bridge");
 
 		// # display hands
 		handsHtml = {};
 		for (player in variables.playerList) {
 			// TODO: better logic. Need space for E or W if we are showing one of them and also a N or S
-			// May well be better to canonicalise the "hands" and add all the permutations to CSS
-			show = findNoCase(player,arguments.styleAtts['hands']) ? "" : " hide";
+			// May well be better to canonicalise the "deal" and add all the permutations to CSS
+			show = findNoCase(player,arguments.styleAtts['deal']) ? "" : " hide";
 			handsHtml[player] = "#tab#<div class='dealhand " & player & show & "'>#cr#";
 			handsHtml[player] &= displayHand( pbndata['deal'][player] );
 			handsHtml[player] &= "#tab#</div>#cr#";
@@ -671,9 +747,12 @@ component {
 		return retStr;
 	}
 
-	private string function dealRose() {
+	private string function dealRose() localmode=true {
 		
-		var roseStr = "#tab#<div class='dealrose'>#cr##tab##tab#<div class='inner'>";
+		tab = this.debug ? chr(9) : "";
+		cr = this.debug ? newLine() : "";
+
+		roseStr = "#tab#<div class='dealrose'>#cr##tab##tab#<div class='inner'>";
 
 		for (position in variables.playerList) {
 			roseStr &= "#tab##tab##tab#<div class='r#position#'>#ucase(position)#</div>";
@@ -711,16 +790,23 @@ component {
 	/**
 	 * @hint Format a single suit for output
 	 * 
-	 * put 10's back in for ts and lowercase unknowns
+	 * Becuase we us 10, we can't use letter spacing and have to use word-spacing
 	* 
 	 * @suit  suit string without spaces
 	 */
-	private function suitFormat(string suit) {
+	private function suitFormat(string suit) localmode=true {
 		
-		arguments.suit = replace(arguments.suit, "T","10");
-		arguments.suit = replace(arguments.suit, "X","x");
+		arguments.suit = trim( arguments.suit );
+		text = [];
+		for (i=1; i <= arguments.suit.len(); i++) {
+			text.append( mid( arguments.suit,i,1 ) );
+		}
+		text = text.toList(" ");
 
-		return trim(arguments.suit);
+		text = replace(text, "T","10");
+		text = replace(text, "X","x");
+
+		return text;
 	}
 
 	// # displayAuction

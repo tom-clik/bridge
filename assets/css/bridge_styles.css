@@ -4,10 +4,26 @@
 	--auction-font:"Times New Roman";
 	--card-font: "Droid Sans Mono";
 	--symbol-font: "courier new";/* droid sans mono not so mono when it comes to diamonds */
+	--hand-width: 300px; /* remember cards in deal may stick out over the edge */
+	--card-spacing: -4px;
+	--card-spacing-inline: -2px;
+	--symbol-size:1em;
+	--card-size: 0.8em;
+	--suit-gap: 4px;
+	--suit-line-height: 0.8;
+	--suit-row-gap: 2px;
+	--rose-width: 50px;
+	--rose-margin: 10px;
 }
 
-/* this may conflict -- need to find all our table classes and insert them here */
-table {
+@media print {
+	.bridge {
+		--card-spacing: -4pt;
+		--card-spacing-inline: -2pt;
+	}
+}
+
+.bridge table {
 	font-size: inherit;
 }
 
@@ -20,72 +36,66 @@ span.suit {
 	font-family: var(--symbol-font), monospace;
 }
 
-
 /* a simple style for a two hand card combo */
 p.bridge  {
 	text-align: center !important;
 }
 
+/* hands can be placed inline in text with inline */
 .bridge.inline {
 	display: inline-block;
 }
 
-
+/* An individual hand */
 .bridgehand {
     display: grid;
     grid-template-columns: auto auto;
     justify-content: center;   /* center the whole hand */
-    column-gap: .6em;
-    row-gap: .15em;
+    column-gap: var(--suit-gap);
+    row-gap: var(--suit-row-gap);
     text-align: left;
+    white-space: nowrap;
 }
 
 .bridge.inline  .bridgehand {
     display: inline-block;
 }
 
+.bridgehand .cards, .bridgehand .suit {
+
+}
+
 .bridgehand .suit {
     text-align: right;
-    width: 1.2em;
+    font-size: var(--symbol-size);
+    line-height: var(--suit-line-height);
+    position: relative;
+    top:-1px;
 }
 
 .bridgehand .cards {
-    letter-spacing: 0.4em;
+    word-spacing:var(--card-spacing);
+    font-size: var(--card-size);
+    line-height: var(--suit-line-height);
 }
 
-.bridge.inline .bridgehand  {
-	white-space: nowrap;
-}
 .bridge.inline .bridgehand .cards {
-	letter-spacing: 0.1em;
+	line-height: normal;
+	word-spacing:var(--card-spacing-inline);
+	padding-right:0.6em;
 }
 
 .bridge.inline .bridgehand .suit {
+	display: inline-block;
 	width: auto;
-	padding-right:0.2em;
+	padding:0 0.2em 0;
+	top:1px;
 }
-
 
 @media print {
-.bridgehand + .bridgefull {
-	page-break-before: avoid;
-}
-}
-/* width and centering for suits and hands on their own */
-.dealhand.standalone  {
-	display:block;
-	max-width:200px;
-	margin:1em auto;
-}
-
-.dealhand:not(.vertical) {
-	white-space: nowrap;
-}
-
-.dealhand.vertical {
-	display: grid;
-	grid-template-columns: max-content  max-content;
-	grid-gap:4px 0 ;
+	.bridgehand + .bridgefull {
+		page-break-before: avoid;
+	}
 }
 
 table.bridgesuitcombo {
@@ -116,63 +126,11 @@ table.bridgesuitcombo td.n, table.bridgesuitcombo td.s {
 	text-align: center;
 }
 
-/* Cards are space as separate words. Can't use letters because of ten: 10 */
-.cards {
-	word-spacing: -5px;
-	font-size:12px;
-	display: inline-block;
-	padding-right: 2px;
-}
-
-@media print {
-	.cards {
-		word-spacing: -0.5em;
-		font-size:9pt;
-	}
-}
-
-/* Suit span surrounds the card symbol to the left */
-span.suit {
-	display: inline-block;
-	font-size: 14px;
-}
-
-.dealhand span.suit {
-	padding:2px;
-	width:12px;
-}
-.dealhand span.suit.c {
-	padding-right:3px;
-}
-
-@media print {
-	span.suit {
-		font-size:10pt;
-	}
-}
-
-/* inconsistency here */
-/*.hand span.suit,.dealhand n span.suit {
-	width:0.8em;
-}
-*/
-@media print {
-	.hand span.suit,.dealhand span.suit {
-		width:10pt;
-	}
-}
-
 span.suit.h, span.suit.d {
 	color: red;
 }
 
-/* div surrounding a full diagram */
-div.bridgefull {
-	width:200px;
-	margin:1em auto 1em auto;
-	position: relative;
-	page-break-inside: avoid;
-}
+
 
 /* Information shown to left of full deal */
 div.bridgeinfo {
@@ -197,11 +155,10 @@ div.bridgeinfo p {
 
 /* deal diagram */
 .bridgedeal {
-    display: grid;
-    margin: 1em 0;
-    justify-content: center;   /* center the whole deal */
-    justify-items: center;
-    gap: 10px;
+	width:var(--hand-width);
+	margin:1em auto 1em auto;
+	position: relative;
+	page-break-inside: avoid;
 }
 
 /* top and bottom rows */
@@ -212,13 +169,24 @@ div.bridgeinfo p {
 
 /* middle row */
 .dealrow.deal-middle {
-    display: grid;
-    grid-auto-flow: column;    /* W | compass | E */
-    grid-auto-columns: max-content;
-    align-items: center;
+	margin: var(--rose-margin) 0;
+    position:relative;
+    display: flex;
     justify-content: center;
-    gap: 20px;
 }
+
+.dealhand.e {
+	position: absolute;
+	top:0;
+	left: calc( (( var(--hand-width) + var(--rose-width) ) / 2 ) + var(--rose-margin));
+}
+
+.dealhand.w {
+	position: absolute;
+	top:0;
+	right: calc( (( var(--hand-width) + var(--rose-width) ) / 2 ) + var(--rose-margin));
+}
+
 
 div.bridgedeal  .bridgehand {
 	justify-content: start;
@@ -228,15 +196,6 @@ div.bridgedeal .hide {
 	display: none;
 }
 
-div.bridgedeal .cards, div.bridgedeal .suit {
-	line-height: 0.6em;
-	display: inline-block;
-  vertical-align: baseline;
-}  
-div.bridgedeal  .suit {
-    position: relative;
-    top: -0.2em;   /* tweak slightly if needed */
-}
 
 /* Deal rose -- the diagram with the compass points */
 /*font-family: see separate definition */
@@ -252,15 +211,15 @@ div.dealrose {
 }
 
 .dealrose {
-    display: flex;
+	display: flex;
     align-items: center;     /* vertical centering */
     justify-content: center; /* horizontal centering */
 }
 
 /* apply border and background to an inner div to stop funny behaviour */
 div.dealrose .inner {
-	width:50px;
-	height:50px;
+	width:var(--rose-width);
+	height:var(--rose-width);
 	position: relative;
 	margin:2px;
 	border: 1px solid #666666;
@@ -270,7 +229,7 @@ div.dealrose .inner {
 
 /* all letters in deal rose a re positioned absolutely */
 div.dealrose .rn ,div.dealrose .rs {
-	width:50px;
+	width:var(--rose-width);
 	text-align: center;
 	position:absolute;
 	left:0;
@@ -346,6 +305,7 @@ div.bridgeauction table.auction tbody tr {
 }
 
 div.bridgeauction table.auction :is(th, td) > div {
+	display: inline-block;
 	position: relative;
 	top:1px;
 	white-space: nowrap;
@@ -359,25 +319,14 @@ div.bridgeauction table.auction td, div.bridgeauction table.auction th {
 	background: none;
 	vertical-align: middle;
 	height:2em;
-	width: 25%;
+	width: calc( var(--hand-width) /4 );
 	line-height: 1;
 	padding:2px 4px 4px 4px;
 }
 
 div.bridgeauction table.auction td {
-	padding-left:18px;
+	padding-left:24px;
 }
-
-div.bridgeauction.size2 table.auction td {
-	padding-left:36px;
-}
-
-@media print {
-	div.bridgeauction table.auction td {
-		padding:2px 0px 2pt 18pt;
-	}
-}
-
 
 @media print {
 	div.bridgeauction table.auction th {
@@ -417,17 +366,24 @@ p.tip > span:first-of-type {
 	}
 }
 
-dl.tableish {
+dl.tableish, table.styled {
   margin-top:1em;
   border-top: 1px solid #ddd;
   --dl-gap: 0px;
 }
 
 dl.tableish dt,
-dl.tableish dd {
+dl.tableish dd,
+table.styled td,
+table.styled th {
   margin: 0;
   padding: 0.5em 0.75em;
   border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+table.styled tr {
+	border-bottom: 1px solid #ddd;
 }
 
 /* subtle alternating background */
@@ -438,6 +394,7 @@ dl.tableish dt:first-of-type + dd {
 
 /* subtle alternating background */
 dl.tableish dt:nth-of-type(even),
-dl.tableish dd:nth-of-type(even) {
+dl.tableish dd:nth-of-type(even),
+table.styled tbody tr:nth-of-type(odd) {
   background: #fafafa;
 }

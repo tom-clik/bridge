@@ -60,6 +60,8 @@ component extends="bridge.bridge_parser" {
 		return super.displayAuction(argumentCollection = arguments);
 	}
 
-	
+	public function parseTaggedText(required string input) {
+		return super.parseTaggedText(argumentCollection = arguments);
+	}
 
 }

@@ -1,4 +1,4 @@
-component implements="coldlight.pluginInterface" {
+component implements="coldlight.plugins.pluginInterface" {
 
 	public function init(markdown.flexmark markdownObj, coldsoup.coldsoup coldsoupObj) {
 		
@@ -6,6 +6,18 @@ component implements="coldlight.pluginInterface" {
 		variables.bridgeObj = new bridge.bridge_parser(jsoupObj=arguments.coldsoupObj);
 		
 		return this;
+	}
+
+	public string function preProcess(required string text) localmode=true {
+
+		/**
+		 * Process the whole text string before processings
+		 *
+		 * arguments.text = Replace(arguments.text,"♠","&spade;","all");
+		 * 
+		 */
+		return arguments.text;
+		
 	}
 
 	public void function process(required node, required struct document) localmode=true {
@@ -20,6 +32,7 @@ component implements="coldlight.pluginInterface" {
 				html = variables.bridgeObj.bridgeTag(hand, arguments.document.basepath);
 			}
 			catch (any e) {
+				throw(e);
 				html = "<!-- Failed to parse bridge hand -->";
 			}
 			tags[count] = html;
@@ -64,7 +77,7 @@ component implements="coldlight.pluginInterface" {
                 for (symbol in suits) {
                     cssClass = suits[symbol];
                     replacement = "<span class='suit " & cssClass & "'>" & symbol & "</span>";
-                    replaced = replaced.replace(symbol, replacement);
+                    replaced = replaced.replace(symbol, replacement,"all");
                 }
 
                 // If any change was made, replace the node
