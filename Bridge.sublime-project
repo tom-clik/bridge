@@ -2,7 +2,19 @@
 	"folders":
 	[
 		{
-			"path": "."
-		}
+			"path": ".",
+		},
+		{
+			"path": "C:\\git\\dm\\ClikWriter\\Bridge\\bidding Notes",
+		},
+		{
+			"path": "C:\\Users\\tom\\OneDrive\\Documents\\Personal\\Bridge\\records",
+		},
+		{
+			"path": "C:\\git\\dm\\ClikWriter\\Bridge",
+		},
+		{
+			"path": "C:\\git\\libraries\\coldlight\\sample"
+		},
 	],
 }

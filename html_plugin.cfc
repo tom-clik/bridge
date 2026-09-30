@@ -45,23 +45,8 @@ component {
      * Wraps card suit symbols with <span class='suit X'> elements.
      * Example: ♠ → <span class='suit s'>♠</span>
      */
-    public string function wrapSuits(string html) localmode=true {
-        
-    	// Map of suits and their CSS class suffixes
-        suits = {
-            "♠": "s",
-            "♥": "h",
-            "♦": "d",
-            "♣": "c"
-        };
-
-        loop collection=suits key="symbol" value="cssClass" {
-        	arguments.html = replace(arguments.html, symbol, "<span class='suit " & cssClass & "'>" & symbol & "</span>","all");
-        }
-        return html;
-
-
-
+    public string function wrapSuits(required string html) {
+        return variables.bridgeObj.formatInlineHtml(arguments.html);
     }
 
     /**

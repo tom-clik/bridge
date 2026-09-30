@@ -24,6 +24,88 @@ component {
 		return this;
 	}
 
+	/** Convert Markdown inline code to publication auction text, keeping code blocks literal. */
+	public void function formatInlineAuctions(required node) localmode=true {
+		for (code in arguments.node.select("code")) {
+			if (!isNull(code.closest("pre")) || !isInlineAuction(code.text())) continue;
+			code.tagName("span").addClass("bridge-inline-auction");
+		}
+	}
+
+    /** Only bridge call sequences should lose their inline code semantics. */
+    public boolean function isInlineAuction(required string text) {
+        return reFindNoCase("^\s*\(?\s*(?:[1-7](?:NT|[SHDC♠♥♦♣])|PASS|P|DBL|RDBL|XX|X|\?)\s*\)?(?:[\s,;:\-–—→]+\(?\s*(?:[1-7](?:NT|[SHDC♠♥♦♣])|PASS|P|DBL|RDBL|XX|X|\?)\s*\)?)*\s*$", arguments.text) > 0;
+    }
+
+    /** Process text and inline auctions without reserializing the caller's document. */
+    public string function formatInlineHtml(required string html) localmode=true {
+        // Match complete literal blocks before individual tags. Quoted > stays inside a tag.
+        tagPattern = "<(?:[^>""']|""[^""]*""|'[^']*')*>";
+        expression = "<!--.*?-->|<(pre|script|style|textarea|title|bridge)\b[^>]*>.*?</\1\s*>|<code\b[^>]*>.*?</code\s*>|" & tagPattern;
+        patternClass = createObject("java", "java.util.regex.Pattern");
+        matcher = patternClass.compile(expression, patternClass.CASE_INSENSITIVE + patternClass.DOTALL).matcher(arguments.html);
+        result = [];
+        cursor = 1;
+        suitSpanDepth = 0;
+        while (matcher.find()) {
+            start = matcher.start() + 1;
+            if (start > cursor) {
+                text = mid(arguments.html, cursor, start - cursor);
+                result.append(suitSpanDepth ? text : wrapSuitText(text));
+            }
+            tag = matcher.group();
+            if (reFindNoCase("^<code\b", tag)) {
+                document = variables.jsoupObj.Jsoup.parse(tag);
+                code = document.select("code").first();
+                if (isInlineAuction(code.text())) {
+                    formatInlineAuctions(document);
+                    wrapSuitSymbols(document);
+                    tag = document.body().html();
+                }
+            } else if (reFindNoCase("^<span\b", tag)) {
+                if (suitSpanDepth || reFindNoCase("\bclass\s*=\s*['""][^'""]*\bsuit\b", tag)) suitSpanDepth++;
+            } else if (reFindNoCase("^</span\s*>", tag) && suitSpanDepth) {
+                suitSpanDepth--;
+            }
+            result.append(tag);
+            cursor = matcher.end() + 1;
+        }
+        if (cursor <= len(arguments.html)) {
+            text = mid(arguments.html, cursor, len(arguments.html) - cursor + 1);
+            result.append(suitSpanDepth ? text : wrapSuitText(text));
+        }
+        return result.toList("");
+    }
+
+    private string function wrapSuitText(required string text) localmode=true {
+        suits = {"♠":"s", "♥":"h", "♦":"d", "♣":"c"};
+        for (symbol in suits) {
+            arguments.text = replace(arguments.text, symbol, "<span class='suit " & suits[symbol] & "'>" & symbol & "</span>", "all");
+        }
+        return arguments.text;
+    }
+
+	/** Wrap visible suit characters without interpreting escaped text as HTML. */
+	public void function wrapSuitSymbols(required node) localmode=true {
+		suits = {"♠":"s", "♥":"h", "♦":"d", "♣":"c"};
+		for (element in arguments.node.select("*")) {
+			if (!isNull(element.closest("pre, code, script, style, .suit"))) continue;
+			for (textNode in element.textNodes()) {
+				// outerHtml retains escaping for literal <, > and & in inline auctions.
+				original = textNode.outerHtml();
+				replaced = original;
+				for (symbol in suits) {
+					replaced = replace(replaced, symbol, "<span class='suit " & suits[symbol] & "'>" & symbol & "</span>", "all");
+				}
+				if (replaced != original) {
+					fragment = variables.jsoupObj.Jsoup.parse(replaced).body().childNodes();
+					for (child in fragment) textNode.before(child);
+					textNode.remove();
+				}
+			}
+		}
+	}
+
 	/**
 	 * Parse a JSOUP node into text and attributes and call parseBridgeData
 	 * 
@@ -237,7 +319,11 @@ component {
 
 			}
 
-			currentTag = tag.tag;
+			// Notes belong to the preceding section; do not let the first note
+			// hide the auction context from subsequent notes (or admit play notes).
+			if (tag.tag != "note") {
+				currentTag = tag.tag;
+			}
 		}
 		
 		return pbnData;
@@ -592,6 +678,12 @@ component {
 			
 		}
 
+		// An explicit vertical hand overrides the inferred or requested inline layout.
+		if (arguments.styleAtts["type"] == "hand" && arguments.styleAtts.keyExists("vertical")
+			&& (!isBoolean(arguments.styleAtts.vertical) || arguments.styleAtts.vertical)) {
+			arguments.styleAtts["inline"] = false;
+		}
+
 		var classes = getClasses(arguments.styleAtts);
 		
 		if (arguments.styleAtts["type"] == "pbn") {
@@ -651,8 +743,14 @@ component {
 		}
 
 		id = arguments.styleAtts.keyExists("id") ? "id=#arguments.styleAtts.id# " : "";
+		imageAttribute = arguments.styleAtts.keyExists("data") && arguments.styleAtts.data.keyExists("image")
+			? ' data-image="' & encodeForHTMLAttribute(arguments.styleAtts.data.image) & '"'
+			: "";
+		if (len(imageAttribute) && arguments.styleAtts.keyExists("width")) {
+			imageAttribute &= ' width="' & encodeForHTMLAttribute(arguments.styleAtts.width) & '"';
+		}
 
-		retStr = "<div #id#class='#classes#'>" & retStr & "</div>";
+		retStr = "<div #id#class='#classes#'#imageAttribute#>" & retStr & "</div>";
 		
 		return retStr;
 	}
@@ -804,7 +902,7 @@ component {
 		text = text.toList(" ");
 
 		text = replace(text, "T","10");
-		text = replace(text, "X","x");
+		text = replace(text, "X","x","all");
 
 		return text;
 	}

@@ -1,6 +1,13 @@
 @import url(https://fonts.googleapis.com/css?family=Droid+Sans+Mono);
 
 :root {
+	--inline-auction-font: inherit;
+	--inline-auction-size: 1em;
+	--inline-auction-weight: 400;
+	--inline-auction-style: normal;
+	--inline-auction-ink: inherit;
+	--inline-auction-background: transparent;
+	--inline-auction-padding: 0;
 	--auction-font:"Times New Roman";
 	--card-font: "Droid Sans Mono";
 	--symbol-font: "courier new";/* droid sans mono not so mono when it comes to diamonds */
@@ -14,6 +21,18 @@
 	--suit-row-gap: 2px;
 	--rose-width: 50px;
 	--rose-margin: 10px;
+}
+
+/* Backtick auctions are prose, not source-code panels. Allow long sequences to wrap. */
+span.bridge-inline-auction {
+	font-family: var(--inline-auction-font);
+	font-size: var(--inline-auction-size);
+	font-weight: var(--inline-auction-weight);
+	font-style: var(--inline-auction-style);
+	color: var(--inline-auction-ink);
+	background: var(--inline-auction-background);
+	padding: var(--inline-auction-padding);
+	white-space: normal;
 }
 
 @media print {
@@ -397,4 +416,14 @@ dl.tableish dt:nth-of-type(even),
 dl.tableish dd:nth-of-type(even),
 table.styled tbody tr:nth-of-type(odd) {
   background: #fafafa;
+}
+
+/* Borderless tables, including tables that also use styled or auction classes. */
+table.plain {
+	--table-border-width: 0px;
+}
+
+table.plain,
+table.plain :is(thead, tbody, tfoot, tr, th, td) {
+	border: 0 !important;
 }
