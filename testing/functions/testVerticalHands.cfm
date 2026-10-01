@@ -24,7 +24,7 @@ for (item in cases) {
     coldlightPlugin.process(section=section,document={basepath:""});
     outputs = {preview:soup.parse(htmlPlugin.process(source)), coldlight:section.node};
     for (adapter in outputs) {
-        node = outputs[adapter].select("div.bridge").first();
+        node = outputs[adapter].select(".bridge").first();
         checks++;
         if (node.hasClass("vertical") != item.vertical || node.hasClass("inline") != item.inline)
             failures.append(adapter & ': ' & item.attributes & ' produced ' & node.className());

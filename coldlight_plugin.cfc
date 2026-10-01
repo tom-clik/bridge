@@ -32,7 +32,6 @@ component implements="coldlight.plugins.pluginInterface" {
 				html = variables.bridgeObj.bridgeTag(hand, arguments.document.basepath);
 			}
 			catch (any e) {
-				throw(e);
 				html = "<!-- Failed to parse bridge hand -->";
 			}
 			tags[count] = html;

@@ -25,13 +25,13 @@ check(find('<div href="chapter.md" />' & chr(10) & '<tr><td>', converted) == 1, 
 check(find('bridge-inline-auction', converted) > 0, "Auction converts inside an otherwise preserved fragment");
 check(plugin.process(converted) == converted, "Repeated processing does not add nested suit spans or change whitespace");
 converted = plugin.process('<bridge data-image="images/hand.png">AKQ.432.AJ98.765</bridge>');
-node = markdown.coldsoupObj.parse(converted).select("div.bridge").first();
+node = markdown.coldsoupObj.parse(converted).select(".bridge").first();
 check(node.attr("data-image") == "images/hand.png", "Bridge image reference survives HTML conversion");
 converted = plugin.process('<bridge data-image="images/hand.png" width="200">AKQ.432.AJ98.765</bridge>');
-node = markdown.coldsoupObj.parse(converted).select("div.bridge").first();
+node = markdown.coldsoupObj.parse(converted).select(".bridge").first();
 check(node.attr("width") == "200", "Bridge image display width survives HTML conversion");
 converted = plugin.process('<bridge data-image="images/a&amp;b&quot;c.png">AKQ.432.AJ98.765</bridge>');
-node = markdown.coldsoupObj.parse(converted).select("div.bridge").first();
+node = markdown.coldsoupObj.parse(converted).select(".bridge").first();
 check(node.attr("data-image") == 'images/a&b"c.png', "Bridge image reference is safely escaped");
 converted = plugin.process('<bridge>AKQ.432.AJ98.765</bridge>');
 check(!find("data-image", converted), "Bridge diagrams without image references stay unchanged");

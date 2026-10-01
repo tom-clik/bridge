@@ -615,7 +615,9 @@ component {
 		
 		retStr  = replace(retStr,"..",".-.");
 		
-		suits = ListToArray(retStr,".");
+		suits = find(".", retStr)
+			? ListToArray(retStr, ".")
+			: ListToArray(retStr, "#chr(10)##chr(13)#, ");
 		
 		if (not ArrayLen(suits) == 4) {
 			throw(message = 'Hand [#arguments.text#]only has ' & ArrayLen(suits) & ' suits',type="bridge");
@@ -688,6 +690,8 @@ component {
 		
 		if (arguments.styleAtts["type"] == "pbn") {
 
+			classes = listAppend(classes, "bridgefull", " ");
+
 			pbndata = parsePBN(text);
 			
 			retStr = '';
@@ -750,7 +754,8 @@ component {
 			imageAttribute &= ' width="' & encodeForHTMLAttribute(arguments.styleAtts.width) & '"';
 		}
 
-		retStr = "<div #id#class='#classes#'#imageAttribute#>" & retStr & "</div>";
+		wrapper = arguments.styleAtts["type"] == "hand" && listFind(classes, "inline", " ") ? "span" : "div";
+		retStr = "<#wrapper# #id#class='#classes#'#imageAttribute#>" & retStr & "</#wrapper#>";
 		
 		return retStr;
 	}

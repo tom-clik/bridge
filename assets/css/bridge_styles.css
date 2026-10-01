@@ -151,6 +151,14 @@ span.suit.h, span.suit.d {
 
 
 
+/* Keep metadata positioned beside its own full diagram. */
+div.bridgefull {
+	width: var(--hand-width);
+	margin: 1em auto;
+	position: relative;
+	page-break-inside: avoid;
+}
+
 /* Information shown to left of full deal */
 div.bridgeinfo {
 	position:absolute;
