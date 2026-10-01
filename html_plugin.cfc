@@ -8,17 +8,17 @@ component {
 		return this;
 	}
 
-	public string function process(required string html, string path="") localmode=true {
+	public string function process(required struct doc, string path="") localmode=true {
 		patternObj = createObject( "java", "java.util.regex.Pattern");
 
-		arguments.html = wrapSuits(arguments.html);
+		arguments.doc.html = wrapSuits(arguments.doc.html);
 
 		pattern = patternObj.compile(
 		    "<bridge\b([^>]*)>(.*?)</bridge>",
 		    patternObj.CASE_INSENSITIVE + patternObj.DOTALL
 		);
 
-		tagObjs = pattern.matcher(arguments.html);
+		tagObjs = pattern.matcher(arguments.doc.html);
 		tags = [];
 
 		while (tagObjs.find()){
@@ -31,13 +31,13 @@ component {
 			hand = node.select("bridge").first();
 			handhtml = variables.bridgeObj.bridgeTag(hand, arguments.path);
 			handhtml= stripWhiteSpace(handhtml);
-			arguments.html = Replace(arguments.html,tag,handhtml);
+			arguments.doc.html = Replace(arguments.doc.html,tag,handhtml);
 			
 		}
 
 		
 		
-		return arguments.html;
+		return arguments.doc.html;
 
 	}
 
