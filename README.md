@@ -20,7 +20,11 @@ hand = parser.parsePBN(pbnText);
 
 `parseHandviewer(input, resolveURLs=true)` accepts a Handviewer URL or query
 (including `lin=...`), raw LIN, or a URL returning LIN. Short links and relative
-redirects are resolved with a bounded redirect count and HTTP timeout. Set
+redirects are resolved with a bounded redirect count and HTTP timeout.
+Network requests, including every redirect hop, are restricted to the exact
+hosts `bridgebase.com`, `www.bridgebase.com`, `tinyurl.com` and `www.tinyurl.com`
+on standard HTTP/HTTPS ports, without URL credentials. Other hosts can only
+be used as pasted links containing hand parameters (no request is made). Set
 `resolveURLs=false` for offline parsing or untrusted URLs. Query values are
 URL-decoded once; raw LIN is already decoded text.
 
@@ -41,7 +45,7 @@ reconstruct chronological play from those columns. Play notes are kept
 separately in `play_notes` and exported after the play section.
 
 Run `testing/functions/testHandviewerImport.cfm` on the local CFML server for
-import/export regressions, including local HTTP fixtures. The interactive
+import/export regressions, including mocked HTTP redirects and blocked destinations. The interactive
 `testing/handviewer_convert.cfm` form accepts a pasted URL or raw LIN, renders
 the hand and auction, and offers **Save PBN file** to a configured local folder
 or **Download instead**. **View PBN** shows the exact text that will be saved.

@@ -78,16 +78,48 @@ hand = parser.parseLIN('md|1SHDAKQC,,,|mb|AP|');
 roundtrip = parser.parsePBN(parser.exportPBN(hand));
 check(roundtrip.deal.s.s == '-' && roundtrip.deal.s.h == '-' && roundtrip.deal.s.d == 'AKQ', 'Consecutive void suits roundtrip');
 check(find(' - - -', parser.exportPBN(hand)) > 0 || find('N:- - ', parser.exportPBN(hand)) > 0, 'Unknown hands export as missing holdings');
-baseURL = 'http://' & cgi.http_host & reReplace(cgi.script_name, '/functions/[^/]+$', '/handviewerSource.cfm');
+network = new bridge.testing.handviewerURLTestObj();
+baseURL = 'https://tinyurl.com/';
+linResponse = {statusCode:'200 OK', fileContent:'md|1SAHDC,,,|mb|1S|mb|P|mb|P|mb|P|pc|SA|pc|H2|'};
+network.responses[baseURL & 'lin'] = linResponse;
+network.responses[baseURL & 'redirect'] = {statusCode:'302 Found', responseHeader:{Location:'lin'}};
+network.responses[baseURL & 'viewer'] = {statusCode:'302 Found', responseHeader:{Location:'https://www.bridgebase.com/tools/handviewer.html?d=w&a=1sppp&p=SAH2'}};
+network.responses[baseURL & 'loop'] = {statusCode:'302 Found', responseHeader:{Location:'loop'}};
+network.responses[baseURL & 'html'] = {statusCode:'200 OK', fileContent:'<html>Not LIN</html>'};
 for (mode in ['lin', 'redirect', 'viewer']) {
-    hand = parser.parseHandviewer(baseURL & '?mode=' & mode);
+    hand = network.parseHandviewer(baseURL & mode);
     check(hand.contract == '1S' && arrayToList(hand.play_ordered) == 'SA,H2', 'HTTP source: ' & mode);
 }
 for (mode in ['loop', 'html']) {
     rejected = false;
-    try { parser.parseHandviewer(baseURL & '?mode=' & mode); }
+    try { network.parseHandviewer(baseURL & mode); }
     catch (bridge e) { rejected = true; }
     check(rejected, 'HTTP source rejected: ' & mode);
+}
+// Neither initial input nor redirects may cause a request to a non-allowlisted destination.
+for (target in ['http://localhost/', 'http://127.0.0.1/', 'http://10.0.0.1/', 'http://172.16.0.1/',
+    'http://192.168.1.1/', 'http://169.254.169.254/latest/meta-data/', 'http://[::1]/',
+    'http://2130706433/', 'https://bridgebase.com.attacker.invalid/', 'https://attackerbridgebase.com/',
+    'https://bridgebase.com@127.0.0.1/', 'https://user@bridgebase.com/', 'https://bridgebase.com:8080/',
+    'https://bridgebase.com:80/', 'http://tinyurl.com:443/', 'https://bridgebase.com./',
+    'http://%31%32%37.0.0.1/', 'file:///etc/passwd']) {
+    before = network.requests.len();
+    rejected = false;
+    try { network.parseHandviewer(target); } catch (bridge e) { rejected = true; }
+    check(rejected && network.requests.len() == before, 'Blocked initial destination without request: ' & target);
+    network.responses[baseURL & 'blocked'] = {statusCode:'302 Found', responseHeader:{Location:target}};
+    rejected = false;
+    try { network.parseHandviewer(baseURL & 'blocked'); } catch (bridge e) { rejected = true; }
+    check(rejected && network.requests.len() == before + 1, 'Blocked redirect before second request: ' & target);
+}
+network.responses[baseURL & 'blocked'] = {statusCode:'302 Found', responseHeader:{Location:'//127.0.0.1/private'}};
+before = network.requests.len();
+rejected = false;
+try { network.parseHandviewer(baseURL & 'blocked'); } catch (bridge e) { rejected = true; }
+check(rejected && network.requests.len() == before + 1, 'Scheme-relative private redirect blocked');
+for (target in ['https://bridgebase.com/lin', 'http://www.bridgebase.com:80/lin', 'https://www.tinyurl.com:443/lin']) {
+    network.responses[target] = linResponse;
+    check(network.parseHandviewer(target).contract == '1S', 'Allowed destination: ' & target);
 }
 cfcontent(type='application/json; charset=utf-8', reset=true);
 writeOutput(serializeJSON({passed:failures.isEmpty(), checks:checks, failures:failures}));

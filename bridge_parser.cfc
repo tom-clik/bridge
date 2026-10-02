@@ -52,7 +52,8 @@ component {
             if (!reFindNoCase("^https?://", source) || !arguments.resolveURLs || hop == 5) {
                 throw(type="bridge", message="Expected LIN data or a Handviewer URL/query; URL resolution is disabled, exhausted, or unavailable.");
             }
-            http url=source method="get" redirect=false timeout=15 result="response";
+            validateHandviewerURL(source);
+            response = requestHandviewerURL(source);
             status = val(response.statusCode);
             if (status >= 300 && status < 400 && response.responseHeader.keyExists("Location")) {
                 source = createObject("java", "java.net.URI").init(source).resolve(response.responseHeader.Location).toString();
@@ -63,6 +64,28 @@ component {
                 throw(type="bridge", message="Unable to load Handviewer/LIN URL (HTTP " & status & ").");
             }
         }
+    }
+
+    /** Exact host allowlist, checked before each request, including redirected requests. */
+    private void function validateHandviewerURL(required string url) localmode=true {
+        try {
+            uri = createObject("java", "java.net.URI").init(arguments.url);
+            scheme = isNull(uri.getScheme()) ? "" : lCase(uri.getScheme());
+            authority = isNull(uri.getRawAuthority()) ? "" : uri.getRawAuthority();
+            port = uri.getPort();
+            allowed = (scheme == "http" || scheme == "https")
+                && reFindNoCase("^(?:www\.)?(?:bridgebase\.com|tinyurl\.com)(?::[0-9]+)?$", authority)
+                && (port == -1 || (scheme == "http" && port == 80) || (scheme == "https" && port == 443));
+        } catch (any e) {
+            allowed = false;
+        }
+        if (!allowed) throw(type="bridge", message="URL fetching is restricted to bridgebase.com and tinyurl.com (with optional www) on standard HTTP/HTTPS ports. Paste the Handviewer link containing hand data or raw LIN instead.");
+    }
+
+    /** Keep transport separate so redirect policy can be tested without network access. */
+    private struct function requestHandviewerURL(required string url) localmode=true {
+        http url=arguments.url method="get" redirect=false timeout=15 result="response";
+        return response;
     }
 
     /** Parse LIN command/value pairs, preserving empty values and ignoring unknown commands. */
