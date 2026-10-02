@@ -56,7 +56,7 @@ try {
         }
     }
     visibleGap = roseX - 0.5 - rightmost / scale;
-    check(rightmost > 0 && abs(visibleGap - 24) <= 0.75,
+    check(rightmost > 0 && abs(visibleGap - 24) <= 2,
         "Batik West-to-rose gap with negative word spacing: " & visibleGap);
     leftmost = png.getWidth();
     roseRight = roseX + val(rose.xmlAttributes.width) + 0.5;
@@ -67,9 +67,9 @@ try {
         }
     }
     eastGap = leftmost / scale - roseRight;
-    check(leftmost < png.getWidth() && abs(eastGap - 24) <= 0.75,
+    check(leftmost < png.getWidth() && abs(eastGap - 24) <= 2,
         "Batik rose-to-East painted gap: " & eastGap);
-    check(abs(visibleGap - eastGap) <= 0.75, "Both painted gaps are visually balanced");
+    check(abs(visibleGap - eastGap) <= 2, "Monospace model keeps both visible gaps within glyph bearing tolerance");
     previous = hash(fileReadBinary(target));
     fileWrite(source, "<svg>malformed", "utf-8");
     rejected = false;

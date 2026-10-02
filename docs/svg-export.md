@@ -32,6 +32,7 @@ method). Values are numbers in SVG units, equivalent to pixels at intrinsic size
 ```cfml
 svg = parser.exportSvg(pbnText, {
     fontSize: 14,
+    characterWidth: 8.4287109375, // Optional; derived from fontSize when omitted
     letterSpacing: 0,
     wordSpacing: -2,
     rowSpacing: 18,
@@ -45,6 +46,7 @@ svg = parser.exportSvg(pbnText, {
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `fontSize` | 14 | Card and suit-symbol font size. |
+| `characterWidth` | `fontSize × 1233 / 2048` | Monospace advance per character, including spaces and each digit of `10`, before letter/word spacing. |
 | `letterSpacing` | 0 | Extra spacing per character, including between the digits of `10`. |
 | `wordSpacing` | 0 | Extra spacing at the literal spaces between cards. Negative values tighten gaps. |
 | `rowSpacing` | 20 | Baseline distance between suit rows within a hand. |
@@ -53,7 +55,7 @@ svg = parser.exportSvg(pbnText, {
 | `columnGap` | 12 | Additional clearance between each E/W column and the rose, beyond `handGap`. |
 | `padding` | 12 | Space around the diagram. |
 
-`fontSize` and `rowSpacing` must be positive; other layout distances must be
+`fontSize`, `characterWidth`, and `rowSpacing` must be positive; other layout distances must be
 nonnegative. `letterSpacing` and `wordSpacing` may be negative provided estimated
 character advances remain positive. All values must be finite decimal numbers
 with magnitude at most 1000. Invalid settings raise `bridge.svg` errors.
@@ -62,9 +64,9 @@ The rose stays centered in the canvas. North and South share a starting x-coordi
 exactly `handGap` left of the rose's left edge. East and West reserve equal widths,
 using the longest displayed suit in either of those hands. The West hand is
 right-aligned as a block within its column, leaving unused space on the left. Its
-rightmost painted glyph ends `handGap + columnGap` before the outside edge of
-the rose stroke; East’s leftmost painted glyph starts the same distance after
-the opposite stroke edge. Glyph side bearings are included on both sides. Longer outer suits expand both sides equally, leaving the
+modeled text advance ends `handGap + columnGap` before the outside edge of
+the rose stroke; East’s text starts the same distance after the opposite stroke
+edge. Actual painted edges can differ slightly due to glyph side bearings. Longer outer suits expand both sides equally, leaving the
 N/S-to-rose offset unchanged. Long N/S suits can add equal outer margins to prevent
 clipping. Thus diagrams centered on a page keep their roses and N/S starts aligned
 when using the same spacing options. Hiding the rose retains these horizontal anchors.
@@ -72,9 +74,17 @@ when using the same spacing options. Hiding the rose retains these horizontal an
 The canvas dimensions and vertical compass position are recalculated from these options.
 Very small `handGap` values are enlarged to reserve the estimated font height;
 compact rows also reserve space for the 56-unit compass when enabled. Deliberately
-small `rowSpacing` or `suitGap` values can overlap text. Width calculations use painted Java glyph bounds and include positive and
-negative letter/word spacing. Alignment accounts for glyph side bearings and the
-rose’s 1-unit stroke. Subpixel rasterization may differ by a fraction of a pixel.
+small `rowSpacing` or `suitGap` values can overlap text. Width calculations assume a monospace card font and use:
+
+`characters × characterWidth + (characters − 1) × letterSpacing + spaces × wordSpacing`
+
+The DejaVu Sans Mono default is hardcoded from its 1233-unit advance and 2048-unit
+em: `characterWidth = fontSize × 0.60205078125`. It works at arbitrary sizes,
+including 10–24px; no lookup table, font file reading, or Java font inspection is
+performed by the parser. An explicit `characterWidth` overrides this calculation
+without changing the rendered font size. For another monospace font, set its
+advance at the selected size. Negative spacing is included in layout calculations.
+The layout also accounts for the rose’s 1-unit stroke.
 
 Text options are inherited SVG presentation attributes on the root, so different
 inline diagrams can use different values without their embedded CSS conflicting.
@@ -134,15 +144,32 @@ unchanged. Missing or invalid font files raise an error rather than being ignore
 
 Without supplied files, fonts must be installed on the conversion machine. A
 missing font falls back according to the SVG family list; generic `monospace` may
-resolve to Courier New on Windows. The exporter measures the first available family using Java font metrics and
-can measure the bundled DejaVu defaults directly from their files when not installed.
-For other custom fonts, install or register them before exporting as well as when
-converting, so both steps use the same metrics. The bundled DejaVu families are embedded as TrueType data URLs in SVGs when
-selected, ensuring Chrome uses the same font files as the measured layout even
-without system installations. This increases standalone SVG size. Other custom
-font files supplied only to the PNG converter are not embedded: browsers need
-those fonts installed or supplied by the host page. Use the same custom fonts
-in both environments for matching glyph metrics.
+resolve to Courier New on Windows. Font loading remains solely in the PNG
+converter; the parser uses `characterWidth` and never reads font files.
+
+For Chrome, the SVG's small stylesheet includes local-only declarations:
+
+```css
+@font-face {
+    font-family: "DejaVu Sans Mono";
+    src: local("DejaVu Sans Mono"), local("DejaVuSansMono"),
+         local("DejaVu Sans Mono Book");
+    font-weight: 400;
+    font-style: normal;
+}
+```
+
+A matching rule is provided for DejaVu Sans suit symbols. Both rules are wrapped
+in `@supports (font-kerning: auto)` so Chrome can use them while Batik, which
+does not support `local()` sources, ignores them and uses its Java font loader. `local()` asks Chrome
+for the installed font's full or PostScript name; it neither embeds font data nor
+downloads a font. This can resolve a name-matching problem, provided Chrome can
+access the installed font. After installing fonts, fully restart Chrome and
+regenerate old SVGs. In Chrome DevTools, select a card text element and check
+**Computed → Rendered Fonts** to confirm the actual family instead of relying on
+the CSS family declaration. Missing local fonts still fall back to the configured
+family list. For custom families, add their local names to the stylesheet and
+set the appropriate `characterWidth`.
 
 ## PNG conversion
 

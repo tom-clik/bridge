@@ -148,14 +148,14 @@ component {
 	/**
 	 * Export a standalone SVG hand or deal (PBN or direction-prefixed deal text).
 	 * Options: deal (visible seats, default NESW), rose (true), monochrome (false),
-	 * title, fontSize, letterSpacing, wordSpacing, rowSpacing, suitGap, handGap,
+	 * title, fontSize, characterWidth, letterSpacing, wordSpacing, rowSpacing, suitGap, handGap,
 	 * columnGap, padding, fontFamily, suitFontFamily and labelFontFamily.
 	 * Returns XML; callers choose where to save it.
 	 * Auctions and PBN metadata are not rendered by this diagram exporter.
 	 */
 	public string function exportSvg(required string text, struct options={}) localmode=true {
 		settings = {deal:"nesw", rose:true, monochrome:false, title:"Bridge diagram",
-			fontSize:14, letterSpacing:0, wordSpacing:0, rowSpacing:20,
+			fontSize:14, characterWidth:0, letterSpacing:0, wordSpacing:0, rowSpacing:20,
 			suitGap:24, handGap:24, columnGap:12, padding:12,
 			fontFamily:"DejaVu Sans Mono, monospace", suitFontFamily:"DejaVu Sans, sans-serif", labelFontFamily:"sans-serif"};
 		for (key in arguments.options) {
@@ -173,18 +173,23 @@ component {
 				throw(type="bridge.svg", message="Invalid SVG font family: " & key);
 		}
 
+		// DejaVu Sans Mono has a 1233-unit advance in a 2048-unit em.
+		// This is a fixed ratio, independent of runtime fonts and operating system.
+		if (!structKeyExists(arguments.options, "characterWidth") && isNumeric(settings.fontSize))
+			settings.characterWidth = settings.fontSize * 1233 / 2048;
+
 		// Plain finite numbers only: these values are serialized into SVG attributes.
-		for (key in ["fontSize","letterSpacing","wordSpacing","rowSpacing","suitGap","handGap","columnGap","padding"]) {
+		for (key in ["fontSize","characterWidth","letterSpacing","wordSpacing","rowSpacing","suitGap","handGap","columnGap","padding"]) {
 			if (!isSimpleValue(settings[key]) || !reFind("^-?[0-9]+(\.[0-9]+)?$", toString(settings[key])))
 				throw(type="bridge.svg", message="Invalid numeric SVG option: " & key);
 			settings[key] = val(settings[key]);
 			if (abs(settings[key]) > 1000 || (settings[key] < 0 && !listFind("letterSpacing,wordSpacing", key))
-				|| (listFind("fontSize,rowSpacing", key) && settings[key] == 0))
+				|| (listFind("fontSize,characterWidth,rowSpacing", key) && settings[key] == 0))
 				throw(type="bridge.svg", message="SVG spacing option out of range: " & key);
 		}
 		// Avoid reversed text advances when tightening the monospace card text.
-		if (settings.letterSpacing <= -settings.fontSize * 0.6
-			|| settings.wordSpacing + settings.letterSpacing <= -settings.fontSize * 0.6)
+		if (settings.letterSpacing <= -settings.characterWidth
+			|| settings.wordSpacing + settings.letterSpacing <= -settings.characterWidth)
 			throw(type="bridge.svg", message="SVG card spacing must leave positive character advances");
 
 		source = trim(arguments.text);
@@ -216,31 +221,24 @@ component {
 			hands.n = svgParseHand(source);
 		}
 
-		// Measure the selected font instead of reserving an unspaced character grid.
-		// Both positive and negative spacing must affect the West-hand anchor.
-		cardFont = svgCardFont(settings.fontFamily, settings.fontSize);
-		symbolFont = svgCardFont(settings.suitFontFamily, settings.fontSize);
-		fontContext = createObject("java", "java.awt.font.FontRenderContext").init(
-			createObject("java", "java.awt.geom.AffineTransform").init(), true, true);
+		// Monospace advance model: every character (including each digit of 10
+		// and each inter-card space) occupies characterWidth before CSS spacing.
 		handWidths = {n:0, e:0, s:0, w:0};
-		handLeft = {n:0, e:0, s:0, w:0};
-		handRight = {n:0, e:0, s:0, w:0};
 		for (seat in hands) {
 			if (isDeal && !findNoCase(seat, settings.deal)) continue;
-			handLeft[seat] = 999999;
 			for (suit in ["s","h","d","c"]) {
-				cards = svgTextInkBounds(cardFont, fontContext, suitFormat(hands[seat][suit]), settings.letterSpacing, settings.wordSpacing);
-				symbol = svgTextInkBounds(symbolFont, fontContext, getSymbol(suit));
-				handLeft[seat] = min(handLeft[seat], min(symbol.left, settings.suitGap + cards.left));
-				handRight[seat] = max(handRight[seat], max(symbol.right, settings.suitGap + cards.right));
+				cards = suitFormat(hands[seat][suit]);
+				spaces = len(cards) - len(replace(cards, " ", "", "all"));
+				cardWidth = len(cards) * settings.characterWidth
+					+ (len(cards) - 1) * settings.letterSpacing + spaces * settings.wordSpacing;
+				handWidths[seat] = max(handWidths[seat], max(settings.fontSize, settings.suitGap + cardWidth));
 			}
-			handWidths[seat] = handRight[seat] - handLeft[seat];
 		}
 		if (isDeal) {
 			// Equal E/W columns flank the rose. Anchor N/S to the rose, never to
 			// a content-sized middle column. Symmetric bounds keep centered deals aligned.
 			ewWidth = max(handWidths.e, handWidths.w);
-			nsWidth = max(handRight.n, handRight.s);
+			nsWidth = max(handWidths.n, handWidths.s);
 			roseStroke = 1;
 			roseWidth = 56;
 			wingExtent = (roseWidth + roseStroke) / 2 + settings.handGap + settings.columnGap + ewWidth;
@@ -251,10 +249,10 @@ component {
 			centerX = roseX - settings.handGap;
 			// Right-align the West hand as a block within the equal-width wing.
 			// A longer East hand leaves spare space on West's outer (left) side.
-			westX = centerX - settings.columnGap - roseStroke / 2 - handRight.w;
-			eastX = roseX + roseWidth + roseStroke / 2 + settings.handGap + settings.columnGap - handLeft.e;
+			westX = centerX - settings.columnGap - roseStroke / 2 - handWidths.w;
+			eastX = roseX + roseWidth + roseStroke / 2 + settings.handGap + settings.columnGap;
 		} else {
-			width = 2 * settings.padding + max(56, handRight.n);
+			width = 2 * settings.padding + max(56, handWidths.n);
 			centerX = settings.padding;
 			westX = centerX;
 			eastX = centerX;
@@ -267,17 +265,6 @@ component {
 		bandStep = bandHeight + max(0, settings.handGap - settings.fontSize * 1.3);
 		height = 2 * settings.padding + (isDeal ? 2 * bandStep + bandHeight : handExtent);
 		css = fileRead(getDirectoryFromPath(getCurrentTemplatePath()) & "assets/css/bridge_svg.css", "utf-8");
-		// Keep browser and server metrics consistent even when DejaVu is not installed.
-		// Names are scoped to the SVG's chosen family; no external font request is needed.
-		bundledFonts = {"DejaVu Sans Mono":"assets/fonts/dejavu-sans-mono/DejaVuSansMono.ttf",
-			"DejaVu Sans":"assets/fonts/dejavu-sans/DejaVuSans.ttf"};
-		for (fontName in bundledFonts) {
-			if (!findNoCase(fontName, settings.fontFamily & "," & settings.suitFontFamily & "," & settings.labelFontFamily)) continue;
-			fontPath = getDirectoryFromPath(getCurrentTemplatePath()) & bundledFonts[fontName];
-			if (fileExists(fontPath))
-				css &= chr(10) & '@font-face { font-family: "' & fontName & '"; src: url("data:font/ttf;base64,'
-					& toBase64(fileReadBinary(fontPath)) & '"); }';
-		}
 		classes = "bridge-svg" & (settings.monochrome ? " bridge-svg-mono" : "");
 		parts = ['<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="' & classes
 			& '" font-family="' & xmlFormat(settings.fontFamily) & '" font-size="' & settings.fontSize & '" letter-spacing="' & settings.letterSpacing
@@ -308,65 +295,6 @@ component {
 		}
 		parts.append('</svg>');
 		return arrayToList(parts, chr(10));
-	}
-
-	/** Painted bounds, including glyph side bearings and SVG spacing adjustments. */
-	private struct function svgTextInkBounds(required font, required context, required string text,
-		numeric letterSpacing=0, numeric wordSpacing=0) localmode=true {
-		glyphs = arguments.font.createGlyphVector(arguments.context, javacast("string", arguments.text));
-		bounds = {left:999999, right:-999999};
-		extra = 0;
-		for (i=0; i < glyphs.getNumGlyphs(); i++) {
-			ink = glyphs.getGlyphVisualBounds(javacast("int", i)).getBounds2D();
-			if (!ink.isEmpty()) {
-				bounds.left = min(bounds.left, ink.getMinX() + extra);
-				bounds.right = max(bounds.right, ink.getMaxX() + extra);
-			}
-			extra += arguments.letterSpacing;
-			if (mid(arguments.text, i + 1, 1) == " ") extra += arguments.wordSpacing;
-		}
-		return bounds;
-	}
-
-	/** Resolve the first installed family in the same order as the SVG fallback list. */
-	private function svgCardFont(required string families, required numeric size) localmode=true {
-		available = createObject("java", "java.awt.GraphicsEnvironment").getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
-		generic = {"monospace":"Monospaced", "sans-serif":"SansSerif", "serif":"Serif", "cursive":"Dialog", "fantasy":"Dialog"};
-		family = "SansSerif";
-		bundled = {"DejaVu Sans Mono":"assets/fonts/dejavu-sans-mono/DejaVuSansMono.ttf",
-			"DejaVu Sans":"assets/fonts/dejavu-sans/DejaVuSans.ttf"};
-		found = false;
-		for (candidate in listToArray(arguments.families, ",")) {
-			candidate = trim(candidate);
-			if (len(candidate) >= 2 && ((left(candidate, 1) == '"' && right(candidate, 1) == '"')
-				|| (left(candidate, 1) == "'" && right(candidate, 1) == "'")))
-				candidate = mid(candidate, 2, len(candidate) - 2);
-			if (structKeyExists(generic, candidate)) {
-				family = generic[candidate];
-				break;
-			}
-			// The repository's default fonts may be supplied to Batik without being
-			// installed system-wide. Measure those same files on the first export.
-			if (structKeyExists(bundled, candidate)) {
-				fontPath = getDirectoryFromPath(getCurrentTemplatePath()) & bundled[candidate];
-				if (fileExists(fontPath)) {
-					font = createObject("java", "java.awt.Font");
-					return font.createFont(font.TRUETYPE_FONT, createObject("java", "java.io.File").init(fontPath))
-						.deriveFont(javacast("float", arguments.size));
-				}
-			}
-			for (installed in available) {
-				if (compareNoCase(candidate, installed) == 0) {
-					family = installed;
-					found = true;
-					break;
-				}
-			}
-			if (found) break;
-
-		}
-		return createObject("java", "java.awt.Font").init(family, javacast("int", 0), javacast("int", 1))
-			.deriveFont(javacast("float", arguments.size));
 	}
 
 	/** Normalize empty suits before reusing the existing hand parser. */

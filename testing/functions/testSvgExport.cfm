@@ -15,8 +15,9 @@ check(arrayLen(xmlSearch(xml, "//*[local-name()='text']")) == 4, "Four suits in 
 check(find("10 x", hand) > 0, "Ten and unknown rank formatting");
 check(find('style=', hand) == 0 && find('<style', hand) > 0, "Embedded CSS instead of inline styles");
 check(find("foreignObject", hand) == 0, "Portable SVG primitives");
-check(find('data:font/ttf;base64,', hand) > 0 && find('@font-face', hand) > 0,
-    "Bundled fonts embedded so Chrome and Batik use the same metrics");
+check(find('data:font', hand) == 0 && find('base64,', hand) == 0 && len(hand) < 5000,
+    "SVG stays small without embedded fonts");
+check(find('local("DejaVuSansMono")', hand) > 0, "Local PostScript name provided for Chrome");
 check(find('>-</tspan>', hand) > 0, "Empty suit rendered as a dash");
 check(arrayLen(xmlSearch(xmlParse(parser.exportSvg("...")), "//*[local-name()='text']")) == 4, "All empty suits");
 deal = 'E:AKQ.JT9.876.543 2.3.4.5 - T98.AKQ.JT9.876';
@@ -88,25 +89,12 @@ shortDeal = "N:A.K.Q.J A.K.Q.J A.K.Q.J A.K.Q.J";
 longEast = "N:A.K.Q.J AKQJT98765432... A.K.Q.J A.K.Q.J";
 longWest = "N:A.K.Q.J A.K.Q.J A.K.Q.J AKQJT98765432...";
 longNorth = "N:AKQJT98765432... A.K.Q.J A.K.Q.J A.K.Q.J";
-// The long suit has 26 displayed characters, including the expanded ten and spaces.
-metricsFontClass = createObject("java", "java.awt.Font");
-metricsFont = metricsFontClass.createFont(metricsFontClass.TRUETYPE_FONT,
-    createObject("java", "java.io.File").init(getDirectoryFromPath(getCurrentTemplatePath())
-        & "../../assets/fonts/dejavu-sans-mono/DejaVuSansMono.ttf")).deriveFont(javacast("float", 14));
-metricsContext = createObject("java", "java.awt.font.FontRenderContext").init(
-    createObject("java", "java.awt.geom.AffineTransform").init(), true, true);
-longAdvance = metricsFont.getStringBounds("A K Q J 10 9 8 7 6 5 4 3 2", metricsContext).getWidth();
-longInk = metricsFont.createGlyphVector(metricsContext, "A K Q J 10 9 8 7 6 5 4 3 2").getVisualBounds().getMaxX();
-expectedWingWidth = 24 + longInk;
-shortWestWidth = 0;
-for (rank in ["A","K","Q","J"])
-    shortWestWidth = max(shortWestWidth, 24 + metricsFont.createGlyphVector(metricsContext, rank).getVisualBounds().getMaxX());
-symbolFont = metricsFontClass.createFont(metricsFontClass.TRUETYPE_FONT,
-    createObject("java", "java.io.File").init(getDirectoryFromPath(getCurrentTemplatePath())
-        & "../../assets/fonts/dejavu-sans/DejaVuSans.ttf")).deriveFont(javacast("float", 14));
-symbolLeft = 999999;
-for (symbol in ["♠","♥","♦","♣"])
-    symbolLeft = min(symbolLeft, symbolFont.createGlyphVector(metricsContext, symbol).getVisualBounds().getMinX());
+// DejaVu Sans Mono's hardcoded 1233/2048 advance scales linearly.
+characterWidth = 14 * 1233 / 2048;
+longAdvance = 26 * characterWidth;
+expectedWingWidth = 24 + longAdvance;
+shortWestWidth = 24 + characterWidth;
+symbolLeft = 0;
 baseLayout = layout(shortDeal);
 for (source in [shortDeal, longEast, longWest, longNorth]) {
     diagram = layout(source);
@@ -149,7 +137,7 @@ check(noRose.n == westLayout.n && noRose.w == westLayout.w && noRose.e == westLa
     "Hiding rose preserves horizontal alignment");
 requestedSpacing = {handGap:"18", columnGap:"6", wordSpacing:"-4", suitGap:"12", rowSpacing:"16"};
 compactWest = layout(longWest, requestedSpacing);
-compactWidth = 12 + longInk - 12 * 4;
+compactWidth = 12 + longAdvance - 12 * 4;
 check(abs(compactWest.rose - 0.5 - compactWest.w - compactWidth - 24) < 0.001,
     "Exact reported settings leave 24 units after the longest West suit");
 noWordSpacing = duplicate(requestedSpacing);
@@ -162,6 +150,22 @@ negativeLetters.letterSpacing = -1;
 letterWest = layout(longWest, negativeLetters);
 check(abs(letterWest.rose - 0.5 - letterWest.w - (compactWidth - 25) - 24) < 0.001,
     "Negative letter spacing also changes the West anchor");
+for (size in [10,12,14,16,18,20,22,24]) {
+    automatic = parser.exportSvg(longWest, {fontSize:size});
+    explicit = parser.exportSvg(longWest, {fontSize:size, characterWidth:size * 1233 / 2048});
+    check(automatic == explicit, "Calculated default character width at font size " & size);
+}
+customWidth = layout(longWest, {characterWidth:"9.5"});
+check(abs(customWidth.rose - 0.5 - customWidth.w - (24 + 26 * 9.5) - 36) < 0.001,
+    "Explicit character width controls West alignment");
+check(parser.exportSvg(longWest, {characterWidth:9.5}) == parser.exportSvg(longWest, {characterWidth:"9.5"}),
+    "Character width accepts numeric strings");
+for (badOptions in [{characterWidth:0}, {characterWidth:-1}, {characterWidth:"bad"},
+    {characterWidth:[]}, {characterWidth:2, wordSpacing:-2}]) {
+    rejected = false;
+    try { parser.exportSvg(shortDeal, badOptions); } catch (bridge.svg e) { rejected = true; }
+    check(rejected, "Reject invalid character width or nonpositive space advance");
+}
 fontOptions = {fontFamily:'"My Cards", monospace', suitFontFamily:"My Symbols", labelFontFamily:"My Labels"};
 fontDoc = xmlParse(parser.exportSvg(shortDeal, fontOptions));
 check(fontDoc.svg.xmlAttributes["font-family"] == fontOptions.fontFamily, "Escaped configurable card family");
