@@ -10,8 +10,10 @@ svgPath = exampleDirectory & "svg_test.svg";
 pngPath = exampleDirectory & "_output/output.png";
 // Supply application font files here when the selected SVG fonts are not installed.
 // Example: [expandPath("../assets/fonts/MyCards.ttf"), expandPath("../assets/fonts/MySymbols.ttf")]
-fontFiles = [];
+fontFiles = [expandPath("../assets/fonts/dejavu-sans/DejaVuSans.ttf")];
 svgToPng(svgPath=svgPath, pngPath=pngPath, fontFiles=fontFiles);
+
+writeOutput("<img src='_output/output.png'>");
 
 /** Convert at intrinsic SVG size, or set width to a target pixel width. */
 boolean function svgToPng(required string svgPath, required string pngPath, numeric width=0, array fontFiles=[]) localmode=true {
