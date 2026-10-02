@@ -51,6 +51,8 @@ try {
         {handGap:"18", columnGap:"6", wordSpacing:"-4", suitGap:"12", rowSpacing:"16"});
     fileWrite(source, compactSvg, "utf-8");
     compactXml = xmlParse(compactSvg);
+    expectedGap = 14 * 1233 / 2048 + 18 + 6;
+    rowAdvance = 14 + 16;
     scale = 4;
     svgToPng(source, target, val(compactXml.svg.xmlAttributes.width) * scale);
     png = imageIO.read(fileClass.init(target));
@@ -66,18 +68,18 @@ try {
         }
     }
     visibleGap = roseX - 0.5 - rightmost / scale;
-    check(rightmost > 0 && abs(visibleGap - 24) <= 2,
+    check(rightmost > 0 && abs(visibleGap - expectedGap) <= 2,
         "Batik West-to-rose gap with negative word spacing: " & visibleGap);
     leftmost = png.getWidth();
     roseRight = roseX + val(rose.xmlAttributes.width) + 0.5;
-    for (py = int((baseline - 14) * scale); py < int((baseline + 3 * 16 + 3) * scale); py++) {
+    for (py = int((baseline - 14) * scale); py < int((baseline + 3 * rowAdvance + 3) * scale); py++) {
         for (px = int((roseRight + 2) * scale); px < png.getWidth(); px++) {
             if (bitAnd(png.getRGB(javacast("int", px), javacast("int", py)), -16777216) != 0)
                 leftmost = min(leftmost, px);
         }
     }
     eastGap = leftmost / scale - roseRight;
-    check(leftmost < png.getWidth() && abs(eastGap - 24) <= 2,
+    check(leftmost < png.getWidth() && abs(eastGap - expectedGap) <= 2,
         "Batik rose-to-East painted gap: " & eastGap);
     check(abs(visibleGap - eastGap) <= 2, "Monospace model keeps both visible gaps within glyph bearing tolerance");
     previous = hash(fileReadBinary(target));

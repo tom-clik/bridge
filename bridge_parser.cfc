@@ -155,8 +155,8 @@ component {
 	 */
 	public string function exportSvg(required string text, struct options={}) localmode=true {
 		settings = {deal:"nesw", rose:true, monochrome:false, title:"Bridge diagram",
-			fontSize:14, characterWidth:0, letterSpacing:0, wordSpacing:0, rowSpacing:20,
-			suitGap:24, handGap:24, columnGap:12, padding:12,
+			fontSize:14, characterWidth:0, letterSpacing:0, wordSpacing:0, rowSpacing:2,
+			suitGap:4, handGap:10, columnGap:12, padding:12,
 			fontFamily:"DejaVu Sans Mono, monospace", suitFontFamily:"DejaVu Sans, sans-serif", labelFontFamily:"sans-serif"};
 		for (key in arguments.options) {
 			if (!structKeyExists(settings, key))
@@ -184,13 +184,18 @@ component {
 				throw(type="bridge.svg", message="Invalid numeric SVG option: " & key);
 			settings[key] = val(settings[key]);
 			if (abs(settings[key]) > 1000 || (settings[key] < 0 && !listFind("letterSpacing,wordSpacing", key))
-				|| (listFind("fontSize,characterWidth,rowSpacing", key) && settings[key] == 0))
+				|| (listFind("fontSize,characterWidth", key) && settings[key] == 0))
 				throw(type="bridge.svg", message="SVG spacing option out of range: " & key);
 		}
 		// Avoid reversed text advances when tightening the monospace card text.
 		if (settings.letterSpacing <= -settings.characterWidth
 			|| settings.wordSpacing + settings.letterSpacing <= -settings.characterWidth)
 			throw(type="bridge.svg", message="SVG card spacing must leave positive character advances");
+
+		// Gap options are extra whitespace beyond the font's natural cell size.
+		rowAdvance = settings.fontSize + settings.rowSpacing;
+		suitAdvance = settings.characterWidth + settings.suitGap;
+		horizontalHandGap = settings.characterWidth + settings.handGap;
 
 		source = trim(arguments.text);
 		if (left(source, 1) == "[") {
@@ -231,7 +236,7 @@ component {
 				spaces = len(cards) - len(replace(cards, " ", "", "all"));
 				cardWidth = len(cards) * settings.characterWidth
 					+ (len(cards) - 1) * settings.letterSpacing + spaces * settings.wordSpacing;
-				handWidths[seat] = max(handWidths[seat], max(settings.fontSize, settings.suitGap + cardWidth));
+				handWidths[seat] = max(handWidths[seat], max(settings.fontSize, suitAdvance + cardWidth));
 			}
 		}
 		if (isDeal) {
@@ -241,16 +246,16 @@ component {
 			nsWidth = max(handWidths.n, handWidths.s);
 			roseStroke = 1;
 			roseWidth = 56;
-			wingExtent = (roseWidth + roseStroke) / 2 + settings.handGap + settings.columnGap + ewWidth;
-			nsLeftExtent = roseWidth / 2 + settings.handGap;
+			wingExtent = (roseWidth + roseStroke) / 2 + horizontalHandGap + settings.columnGap + ewWidth;
+			nsLeftExtent = roseWidth / 2 + horizontalHandGap;
 			halfWidth = max(wingExtent, max(nsLeftExtent, nsWidth - nsLeftExtent));
 			width = 2 * (settings.padding + halfWidth);
 			roseX = width / 2 - roseWidth / 2;
-			centerX = roseX - settings.handGap;
+			centerX = roseX - horizontalHandGap;
 			// Right-align the West hand as a block within the equal-width wing.
 			// A longer East hand leaves spare space on West's outer (left) side.
 			westX = centerX - settings.columnGap - roseStroke / 2 - handWidths.w;
-			eastX = roseX + roseWidth + roseStroke / 2 + settings.handGap + settings.columnGap;
+			eastX = roseX + roseWidth + roseStroke / 2 + horizontalHandGap + settings.columnGap;
 		} else {
 			width = 2 * settings.padding + max(56, handWidths.n);
 			centerX = settings.padding;
@@ -258,12 +263,12 @@ component {
 			eastX = centerX;
 		}
 		topBaseline = settings.padding + settings.fontSize;
-		// handGap is the baseline gap after the final suit row. Also reserve space
-		// for large fonts and the fixed-size compass when suit rows are compact.
-		handExtent = 3 * settings.rowSpacing + settings.fontSize * 1.3;
+		// Each band includes four text rows; handGap adds whitespace after it.
+		// A compact middle band still reserves enough room for the compass.
+		handExtent = 3 * rowAdvance + settings.fontSize;
 		bandHeight = isDeal && settings.rose ? max(handExtent, 56) : handExtent;
-		bandStep = bandHeight + max(0, settings.handGap - settings.fontSize * 1.3);
-		height = 2 * settings.padding + (isDeal ? 2 * bandStep + bandHeight : handExtent);
+		bandStep = bandHeight + settings.handGap;
+		height = 2 * settings.padding + (isDeal ? 2 * bandStep + bandHeight : handExtent) + settings.fontSize * 0.3;
 		classes = "bridge-svg" & (settings.monochrome ? " bridge-svg-mono" : "");
 		parts = ['<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="' & classes
 			& '" font-family="' & xmlFormat(settings.fontFamily) & '" font-size="' & settings.fontSize & '" letter-spacing="' & settings.letterSpacing
@@ -278,9 +283,9 @@ component {
 			parts.append('<g class="bridge-svg-hand bridge-svg-' & seat & '">');
 			for (suit in ["s","h","d","c"]) {
 				parts.append('<text class="bridge-svg-holding" x="' & x & '" y="' & y & '"><tspan class="bridge-svg-suit bridge-svg-'
-					& suit & '" font-family="' & xmlFormat(settings.suitFontFamily) & '">' & getSymbol(suit) & '</tspan><tspan x="' & (x + settings.suitGap) & '">'
+					& suit & '" font-family="' & xmlFormat(settings.suitFontFamily) & '">' & getSymbol(suit) & '</tspan><tspan x="' & (x + suitAdvance) & '">'
 					& xmlFormat(suitFormat(hands[seat][suit])) & '</tspan></text>');
-				y += settings.rowSpacing;
+				y += rowAdvance;
 			}
 			parts.append('</g>');
 		}

@@ -35,9 +35,9 @@ svg = parser.exportSvg(pbnText, {
     characterWidth: 8.4287109375, // Optional; derived from fontSize when omitted
     letterSpacing: 0,
     wordSpacing: -2,
-    rowSpacing: 18,
-    suitGap: 22,
-    handGap: 28,
+    rowSpacing: 2,
+    suitGap: 4,
+    handGap: 10,
     columnGap: 16,
     padding: 12
 });
@@ -49,22 +49,32 @@ svg = parser.exportSvg(pbnText, {
 | `characterWidth` | `fontSize × 1233 / 2048` | Monospace advance per character, including spaces and each digit of `10`, before letter/word spacing. |
 | `letterSpacing` | 0 | Extra spacing per character, including between the digits of `10`. |
 | `wordSpacing` | 0 | Extra spacing at the literal spaces between cards. Negative values tighten gaps. |
-| `rowSpacing` | 20 | Baseline distance between suit rows within a hand. |
-| `suitGap` | 24 | Distance from the suit symbol's starting x-coordinate to the cards' starting x-coordinate. |
-| `handGap` | 24 | Horizontal offset from the N/S hand starts to the rose’s left edge; also the requested baseline gap between bands of hands. |
-| `columnGap` | 12 | Additional clearance between each E/W column and the rose, beyond `handGap`. |
+| `rowSpacing` | 2 | Extra vertical space: suit-row baselines are `fontSize + rowSpacing` apart. |
+| `suitGap` | 4 | Extra horizontal space after one symbol cell: cards start `characterWidth + suitGap` after the suit origin. |
+| `handGap` | 10 | Extra space between hands: horizontal offset uses `characterWidth + handGap`; the vertical gap after the last suit baseline uses `fontSize + handGap`. |
+| `columnGap` | 12 | Additional E/W clearance beyond `characterWidth + handGap`. |
 | `padding` | 12 | Space around the diagram. |
 
-`fontSize`, `characterWidth`, and `rowSpacing` must be positive; other layout distances must be
+`fontSize` and `characterWidth` must be positive; all gap options, including zero, must be
 nonnegative. `letterSpacing` and `wordSpacing` may be negative provided estimated
 character advances remain positive. All values must be finite decimal numbers
 with magnitude at most 1000. Invalid settings raise `bridge.svg` errors.
 
+**Changed semantics:** `rowSpacing`, `suitGap`, and `handGap` are additional space,
+not total distances. At 14px with the default character width, `{rowSpacing:2,
+suitGap:4, handGap:10}` gives row baselines 16px apart, cards about 12.43px after
+the suit origin, a horizontal hand offset of about 18.43px, and a vertical
+inter-hand baseline gap of 24px (unless the compass needs a taller band).
+To migrate an old total `rowSpacing` or `suitGap`, subtract `fontSize` or
+`characterWidth`, respectively. For `handGap`, horizontal distances subtract
+`characterWidth` and vertical distances subtract `fontSize`; the one shared
+option now adds the same extra whitespace to each axis's natural cell size.
+
 The rose stays centered in the canvas. North and South share a starting x-coordinate
-exactly `handGap` left of the rose's left edge. East and West reserve equal widths,
+exactly `characterWidth + handGap` left of the rose's left edge. East and West reserve equal widths,
 using the longest displayed suit in either of those hands. The West hand is
 right-aligned as a block within its column, leaving unused space on the left. Its
-modeled text advance ends `handGap + columnGap` before the outside edge of
+modeled text advance ends `characterWidth + handGap + columnGap` before the outside edge of
 the rose stroke; East’s text starts the same distance after the opposite stroke
 edge. Actual painted edges can differ slightly due to glyph side bearings. Longer outer suits expand both sides equally, leaving the
 N/S-to-rose offset unchanged. Long N/S suits can add equal outer margins to prevent
@@ -72,9 +82,9 @@ clipping. Thus diagrams centered on a page keep their roses and N/S starts align
 when using the same spacing options. Hiding the rose retains these horizontal anchors.
 
 The canvas dimensions and vertical compass position are recalculated from these options.
-Very small `handGap` values are enlarged to reserve the estimated font height;
-compact rows also reserve space for the 56-unit compass when enabled. Deliberately
-small `rowSpacing` or `suitGap` values can overlap text. Width calculations assume a monospace card font and use:
+Zero gap values retain the natural font-size/character-width spacing. Compact
+bands also reserve space for the 56-unit compass when enabled. Symbols wider than
+the assumed character cell may need additional `suitGap`. Width calculations assume a monospace card font and use:
 
 `characters × characterWidth + (characters − 1) × letterSpacing + spaces × wordSpacing`
 
