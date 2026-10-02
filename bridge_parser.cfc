@@ -164,6 +164,8 @@ component {
 
     private void function appendImportedNote(required struct hand, required string value) localmode=true {
         if (!hand.auction.len()) throw(type="bridge", message="An explanation must follow an auction call.");
+        suits = {S:"♠", H:"♥", C:"♣", D:"♦"};
+        for (suit in suits) arguments.value = replaceNoCase(arguments.value, "!" & suit, suits[suit], "all");
         call = hand.auction[hand.auction.len()];
         if (len(call.note)) {
             note = hand.notes[val(call.note)];
@@ -1361,7 +1363,10 @@ component {
 			
 			for (i=1; i lte ArrayLen(arguments.pbndata['notes']); i += 1) {
 				note = arguments.pbndata["notes"][i];
-				retStr &= "#tab##tab#<tr><td>(#note.marker#)</td><td>#note.note#</td></tr>#cr#";
+				// Decode HTML entities as text and reuse the idempotent suit wrapper.
+				noteDocument = variables.jsoupObj.Jsoup.parse(note.note);
+				wrapSuitSymbols(noteDocument);
+				retStr &= "#tab##tab#<tr><td>(#note.marker#)</td><td>#noteDocument.body().html()#</td></tr>#cr#";
 			}
 
 			retStr &= "#tab#</table>#cr#";

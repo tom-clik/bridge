@@ -42,4 +42,17 @@ separately in `play_notes` and exported after the play section.
 
 Run `testing/functions/testHandviewerImport.cfm` on the local CFML server for
 import/export regressions, including local HTTP fixtures. The interactive
-`testing/handviewer_convert.cfm?data=...` adapter accepts the same input formats.
+`testing/handviewer_convert.cfm` form accepts a pasted URL or raw LIN, renders
+the hand and auction, and offers **Save PBN file** to a configured local folder
+or **Download instead**. **View PBN** shows the exact text that will be saved.
+Existing `?data=...` links also work.
+
+Copy `testing/handviewer_folders.sample.json` to
+`testing/handviewer_folders.json` and edit its JSON array of `{id, label, path}`
+folder definitions. IDs must be unique; paths must be absolute, existing
+directories writable by the CFML server. The actual configuration is ignored
+by Git. The page throws an explanatory configuration error if the file is
+missing, malformed or contains an invalid folder.
+
+Choose a folder and filename beside **Save PBN file**. Saving writes UTF-8 PBN
+directly on the machine running CFML; it refuses to overwrite an existing file.
