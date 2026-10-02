@@ -10,13 +10,13 @@ svgPath = exampleDirectory & "svg_sample.svg";
 pngPath = exampleDirectory & "_output/output.png";
 // Supply application font files here when the selected SVG fonts are not installed.
 // Example: [expandPath("../assets/fonts/MyCards.ttf"), expandPath("../assets/fonts/MySymbols.ttf")]
-fontFiles = [expandPath("../assets/fonts/dejavu-sans-mono/DejaVuSansMono.ttf")];
+fontFiles = [exampleDirectory & "../assets/fonts/dejavu-sans-mono/DejaVuSansMono.ttf"];
 svgToPng(svgPath=svgPath, pngPath=pngPath, fontFiles=fontFiles);
 
 writeOutput("<img src='_output/output.png'>");
 
 /** Convert at intrinsic SVG size, or set width to a target pixel width. */
-boolean function svgToPng(required string svgPath, required string pngPath, numeric width=0, array fontFiles=[]) localmode=true {
+boolean function svgToPng(required string svgPath, required string pngPath, numeric width=0, array fontFiles=[], string stylesheetPath="") localmode=true {
     if (!fileExists(arguments.svgPath)) {
         throw(type="FileNotFoundException", message="SVG file not found: " & arguments.svgPath);
     }
@@ -59,14 +59,14 @@ boolean function svgToPng(required string svgPath, required string pngPath, nume
     bytes = createObject("java", "java.io.ByteArrayOutputStream").init();
     fontStylesheet = "";
     try {
-        if (arrayLen(fontRules)) {
-            // Batik caches installed families. Explicit font-face sources also work
-            // when a new application font is supplied after an earlier conversion.
-            fontStylesheet = getTempFile(getTempDirectory(), "bridge-batik-fonts", ".css");
-            fileWrite(fontStylesheet, arrayToList(fontRules, chr(10)), "utf-8");
-            stylesheetURI = createObject("java", "java.io.File").init(fontStylesheet).toURI().toString();
-            transcoder.addTranscodingHint(transcoder.KEY_USER_STYLESHEET_URI, stylesheetURI);
-        }
+        // SVGs contain no CSS. Supply shared diagram styling externally to Batik,
+        // combined with any converter-only font sources.
+        cssPath = len(arguments.stylesheetPath) ? arguments.stylesheetPath
+            : getDirectoryFromPath(getCurrentTemplatePath()) & "../assets/css/bridge_svg.css";
+        fontStylesheet = getTempFile(getTempDirectory(), "bridge-batik-styles", ".css");
+        fileWrite(fontStylesheet, fileRead(cssPath, "utf-8") & chr(10) & arrayToList(fontRules, chr(10)), "utf-8");
+        stylesheetURI = createObject("java", "java.io.File").init(fontStylesheet).toURI().toString();
+        transcoder.addTranscodingHint(transcoder.KEY_USER_STYLESHEET_URI, stylesheetURI);
         output = createObject("java", "org.apache.batik.transcoder.TranscoderOutput", batikSettings).init(bytes);
         transcoder.transcode(input, output);
         fileWrite(arguments.pngPath, bytes.toByteArray());

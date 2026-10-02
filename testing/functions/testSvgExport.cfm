@@ -13,11 +13,11 @@ check(xml.svg.xmlAttributes.xmlns == "http://www.w3.org/2000/svg", "SVG namespac
 check(xml.svg.title.xmlText == 'A & B <diagram> "test"', "Escaped accessible title");
 check(arrayLen(xmlSearch(xml, "//*[local-name()='text']")) == 4, "Four suits in a hand");
 check(find("10 x", hand) > 0, "Ten and unknown rank formatting");
-check(find('style=', hand) == 0 && find('<style', hand) > 0, "Embedded CSS instead of inline styles");
+check(find('style=', hand) == 0 && find('<style', hand) == 0, "No embedded CSS or inline style declarations");
 check(find("foreignObject", hand) == 0, "Portable SVG primitives");
 check(find('data:font', hand) == 0 && find('base64,', hand) == 0 && len(hand) < 5000,
     "SVG stays small without embedded fonts");
-check(find('local("DejaVuSansMono")', hand) > 0, "Local PostScript name provided for Chrome");
+check(find("@font-face", hand) == 0 && find("local(", hand) == 0, "SVG contains no font-loading declarations");
 check(find('>-</tspan>', hand) > 0, "Empty suit rendered as a dash");
 check(arrayLen(xmlSearch(xmlParse(parser.exportSvg("...")), "//*[local-name()='text']")) == 4, "All empty suits");
 deal = 'E:AKQ.JT9.876.543 2.3.4.5 - T98.AKQ.JT9.876';

@@ -1,6 +1,6 @@
 # SVG export
 
-`bridge_parser.exportSvg(text, options={})` returns a complete SVG string. Use an
+`bridge_parser.exportSvg(text, options={})` returns an SVG string without embedded CSS or font-loading declarations. Use an
 initialized bridge parser, just as for HTML output:
 
 ```cfml
@@ -87,29 +87,32 @@ advance at the selected size. Negative spacing is included in layout calculation
 The layout also accounts for the rose’s 1-unit stroke.
 
 Text options are inherited SVG presentation attributes on the root, so different
-inline diagrams can use different values without their embedded CSS conflicting.
+inline diagrams can use different values while sharing one page stylesheet.
 The compass labels retain their own 12px font and normal spacing. Use these options
 for sizing rather than changing font size in CSS, so layout can account for it.
 
 ## Styling and web use
 
-The stylesheet in `assets/css/bridge_svg.css` is embedded in every export. Edit
-that file to change the common design; regenerate existing SVGs after edits.
-Rules use prefixed classes and simple SVG 1.1-compatible selectors. No external
-stylesheet, JavaScript, `foreignObject`, CSS variables, or HTML layout is needed.
-Coordinates remain attributes because they describe geometry, rather than style.
-Each SVG has explicit pixel dimensions and a matching `viewBox`; columns grow
-with the displayed holdings to avoid clipping. The background is transparent.
+SVGs contain geometry, classes, and configurable font/spacing presentation
+attributes, but **no embedded stylesheet, font data, or font-loading declarations**.
+Use them inline in a web page so page styles and web fonts apply:
 
-```html
-<img src="hand.svg" alt="North's hand" style="max-width:100%;height:auto">
+```cfml
+<link rel="stylesheet" href="/bridge/assets/css/bridge_svg.css">
+<cfoutput>#parser.exportSvg(pbnText)#</cfoutput>
 ```
 
-You can also insert the returned SVG directly into HTML or serve it with
-`Content-Type: image/svg+xml; charset=utf-8`. There are no generated IDs that can
-collide when several diagrams share a page. Inline SVGs can be customized using
-host CSS targeting the `bridge-svg-*` classes; image elements use the embedded
-styles. Avoid broad host rules that override SVG text styling.
+The shared stylesheet controls suit colors, the rose, and compass labels. Load
+any web fonts in the HTML page's CSS. `testing/svg_test.html` demonstrates this
+using ordinary font-file URLs and inlining fetched SVGs. Serve the example over
+HTTP through the CFML server; a server-rendered page can output the SVG directly
+without JavaScript. Do not use an `<img>` or `<object>` for these web diagrams:
+those create separate documents that cannot inherit the host page's CSS.
+
+Each SVG has explicit dimensions and a matching `viewBox`. There are no generated
+IDs that can collide when several diagrams share a page. Page CSS can customize
+`bridge-svg-*` classes. A raw SVG opened alone will lack diagram styling; use the
+inline example for browser review or the Batik converter for a styled PNG.
 
 ### Configurable fonts
 
@@ -147,40 +150,19 @@ missing font falls back according to the SVG family list; generic `monospace` ma
 resolve to Courier New on Windows. Font loading remains solely in the PNG
 converter; the parser uses `characterWidth` and never reads font files.
 
-For Chrome, the SVG's small stylesheet includes local-only declarations:
-
-```css
-@font-face {
-    font-family: "DejaVu Sans Mono";
-    src: local("DejaVu Sans Mono"), local("DejaVuSansMono"),
-         local("DejaVu Sans Mono Book");
-    font-weight: 400;
-    font-style: normal;
-}
-```
-
-A matching rule is provided for DejaVu Sans suit symbols. Both rules are wrapped
-in `@supports (font-kerning: auto)` so Chrome can use them while Batik, which
-does not support `local()` sources, ignores them and uses its Java font loader. `local()` asks Chrome
-for the installed font's full or PostScript name; it neither embeds font data nor
-downloads a font. This can resolve a name-matching problem, provided Chrome can
-access the installed font. After installing fonts, fully restart Chrome and
-regenerate old SVGs. In Chrome DevTools, select a card text element and check
-**Computed → Rendered Fonts** to confirm the actual family instead of relying on
-the CSS family declaration. Missing local fonts still fall back to the configured
-family list. For custom families, add their local names to the stylesheet and
-set the appropriate `characterWidth`.
+For web pages, define `@font-face` in the **host page stylesheet**, using ordinary
+font URLs or installed fonts as appropriate. No `local()` rules are included in
+the SVG or shared diagram CSS. The demo loads the repository's DejaVu fonts from
+normal URLs. Chrome DevTools **Computed → Rendered Fonts** shows which family
+actually rendered the inline text.
 
 ## PNG conversion
 
-For example, with Python and CairoSVG installed:
-
-```sh
-python -m cairosvg testing/svg_test.svg -o deal.png -s 2
-```
-
-This doubles the intrinsic pixel dimensions. Use `--background-color white` for
-an opaque white background.
+Batik does not need CSS embedded in the SVG. It does need the diagram styling,
+which the converter supplies externally using `KEY_USER_STYLESHEET_URI`. The
+converter combines `assets/css/bridge_svg.css` with any font sources supplied to
+`fontFiles` in a temporary stylesheet and deletes it after conversion. Other PNG
+converters must likewise be supplied the shared stylesheet.
 
 ### Apache Batik (CFML)
 
@@ -197,10 +179,11 @@ Run `testing/svg_convert.cfm` to convert `testing/svg_test.svg` to
 ```cfml
 svgToPng(svgPath, pngPath);       // Intrinsic SVG dimensions, transparent background
 svgToPng(svgPath, pngPath, 1200); // 1200 pixels wide, preserving aspect ratio
+// Optional: stylesheetPath="/absolute/path/to/custom-diagram.css"
 ```
 
 The destination directory must already exist and be writable. Batik consumes the
-embedded stylesheet and uses installed or supplied fonts, with no external process. Conversion errors propagate to the caller; PNG bytes are
+external shared stylesheet and uses installed or supplied fonts, with no external process. Conversion errors propagate to the caller; PNG bytes are
 buffered before writing so failed transcoding does not replace an existing file.
 Only pass trusted SVG files: Batik may resolve resources referenced by an SVG.
 
@@ -208,7 +191,7 @@ Only pass trusted SVG files: Batik may resolve resources referenced by an SVG.
 
 `testing/svg_export.cfm` serves a live export. `testing/svg_test.svg` is its full
 deal output; `testing/svg_inline.svg` shows a long single hand.
-`testing/svg_test.html` displays both as independent images.
+`testing/svg_test.html` displays the live and saved diagrams inline with page-level fonts and CSS.
 Run `testing/functions/testSvgExport.cfm` in the same CFML setup as the existing
 parser tests; it returns JSON with assertion counts and failures.
 With Maven access, `testing/functions/testSvgConversion.cfm` additionally
@@ -218,5 +201,5 @@ handling. It regenerates the example PNG in `testing/_output`.
 The original experiments disabled the main font rule, relied on the HTML page's
 CSS, used `:first-of-type` for suit coloring, and compensated for spaced cards
 with negative word spacing. Their fixed 240-unit canvas could clip hands. The
-new examples instead embed explicit font properties, color suit spans directly,
+new examples instead use explicit font properties, shared CSS for suit spans,
 and size the canvas from the formatted holdings.

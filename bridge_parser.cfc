@@ -264,12 +264,11 @@ component {
 		bandHeight = isDeal && settings.rose ? max(handExtent, 56) : handExtent;
 		bandStep = bandHeight + max(0, settings.handGap - settings.fontSize * 1.3);
 		height = 2 * settings.padding + (isDeal ? 2 * bandStep + bandHeight : handExtent);
-		css = fileRead(getDirectoryFromPath(getCurrentTemplatePath()) & "assets/css/bridge_svg.css", "utf-8");
 		classes = "bridge-svg" & (settings.monochrome ? " bridge-svg-mono" : "");
 		parts = ['<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="' & classes
 			& '" font-family="' & xmlFormat(settings.fontFamily) & '" font-size="' & settings.fontSize & '" letter-spacing="' & settings.letterSpacing
 			& '" word-spacing="' & settings.wordSpacing & '" width="' & width & '" height="' & height & '" viewBox="0 0 ' & width & ' ' & height & '" role="img">',
-			'<title>' & xmlFormat(settings.title) & '</title>', '<style type="text/css">' & css & '</style>'];
+			'<title>' & xmlFormat(settings.title) & '</title>'];
 		positions = {n:[centerX, topBaseline], w:[westX, topBaseline + bandStep],
 			e:[eastX, topBaseline + bandStep], s:[centerX, topBaseline + 2 * bandStep]};
 		for (seat in ["n","w","e","s"]) {

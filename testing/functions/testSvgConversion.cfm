@@ -14,6 +14,16 @@ png = imageIO.read(fileClass.init(pngPath));
 check(png.getWidth() == int(val(svg.svg.xmlAttributes.width) + 0.5), "Intrinsic PNG width");
 check(png.getHeight() == int(val(svg.svg.xmlAttributes.height) + 0.5), "Intrinsic PNG height");
 check(png.getColorModel().hasAlpha(), "Transparent PNG output");
+check(arrayLen(xmlSearch(svg, "//*[local-name()='style']")) == 0, "Batik input contains no embedded CSS");
+redPixels = 0;
+for (py=0; py < png.getHeight(); py++) {
+    for (px=0; px < png.getWidth(); px++) {
+        color = png.getRGB(javacast("int", px), javacast("int", py));
+        if (bitAnd(color, -16777216) != 0 && bitAnd(bitSHRN(color, 16), 255) > 100
+            && bitAnd(bitSHRN(color, 8), 255) < 80 && bitAnd(color, 255) < 80) redPixels++;
+    }
+}
+check(redPixels > 0, "External stylesheet colors hearts and diamonds red");
 folder = getTempDirectory() & "bridge batik " & createUUID() & "/";
 directoryCreate(folder);
 try {
