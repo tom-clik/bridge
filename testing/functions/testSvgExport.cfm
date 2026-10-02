@@ -67,6 +67,53 @@ for (badOptions in [{rowSpacing:0}, {fontSize:-1}, {padding:-1}, {suitGap:"oops"
     try { parser.exportSvg("AKQ.JT9.876.543", badOptions); } catch (bridge.svg e) { rejected = true; }
     check(rejected, "Reject invalid spacing: " & serializeJSON(badOptions));
 }
+// Long outer suits must not change the N/S-to-rose offset or centered alignment.
+function layout(required string source, struct options={}) {
+    var doc = xmlParse(parser.exportSvg(source, options));
+    var result = {width:val(doc.svg.xmlAttributes.width)};
+    for (var seat in ["n","e","s","w"]) {
+        var rows = xmlSearch(doc, "//*[local-name()='g' and @class='bridge-svg-hand bridge-svg-" & seat & "']/*");
+        if (arrayLen(rows)) result[seat] = val(rows[1].xmlAttributes.x);
+    }
+    var rose = xmlSearch(doc, "//*[local-name()='rect']");
+    if (arrayLen(rose)) {
+        result.rose = val(rose[1].xmlAttributes.x);
+        result.roseWidth = val(rose[1].xmlAttributes.width);
+    }
+    return result;
+}
+shortDeal = "N:A.K.Q.J A.K.Q.J A.K.Q.J A.K.Q.J";
+longEast = "N:A.K.Q.J AKQJT98765432... A.K.Q.J A.K.Q.J";
+longWest = "N:A.K.Q.J A.K.Q.J A.K.Q.J AKQJT98765432...";
+longNorth = "N:AKQJT98765432... A.K.Q.J A.K.Q.J A.K.Q.J";
+baseLayout = layout(shortDeal);
+for (source in [shortDeal, longEast, longWest, longNorth]) {
+    diagram = layout(source);
+    check(diagram.n == diagram.s && diagram.rose - diagram.n == 24, "Rose anchored handGap right of N/S");
+    check(diagram.rose + diagram.roseWidth / 2 == diagram.width / 2, "Rose centered in canvas");
+    check(diagram.n - diagram.width / 2 == baseLayout.n - baseLayout.width / 2,
+        "N/S aligns across centered diagrams with differing suit lengths");
+    check(diagram.e - (diagram.rose + diagram.roseWidth) == 36, "East starts handGap plus columnGap from rose");
+}
+eastLayout = layout(longEast);
+westLayout = layout(longWest);
+check(eastLayout.width == westLayout.width && eastLayout.w == westLayout.w && eastLayout.e == westLayout.e,
+    "Swapping long East/West holdings preserves both column widths and positions");
+// The long suit has 26 displayed characters, including the expanded ten and spaces.
+expectedWingWidth = 24 + 26 * 9;
+check(eastLayout.rose - (eastLayout.w + expectedWingWidth) == 36,
+    "West column right edge leaves handGap plus columnGap before rose");
+check(eastLayout.w + eastLayout.e + expectedWingWidth == eastLayout.width,
+    "Equal-width E/W columns have symmetric outer margins");
+check(layout(longNorth).n + expectedWingWidth <= layout(longNorth).width - 12, "Long N/S fits within padded canvas");
+customLayout = layout(longWest, {handGap:40, columnGap:20, padding:16});
+check(customLayout.rose - customLayout.n == 40
+    && customLayout.rose - (customLayout.w + expectedWingWidth) == 60,
+    "Custom handGap and columnGap apply to horizontal anchors");
+check(customLayout.e - customLayout.rose - customLayout.roseWidth == 60, "Custom East gap matches West");
+noRose = layout(longWest, {rose:false});
+check(noRose.n == westLayout.n && noRose.w == westLayout.w && noRose.e == westLayout.e,
+    "Hiding rose preserves horizontal alignment");
 cfcontent(type="application/json; charset=utf-8",reset=true);
 writeOutput(serializeJSON({passed:failures.isEmpty(),checks:checks,failures:failures}));
 </cfscript>

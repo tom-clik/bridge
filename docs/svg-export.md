@@ -49,8 +49,8 @@ svg = parser.exportSvg(pbnText, {
 | `wordSpacing` | 0 | Extra spacing at the literal spaces between cards. Negative values tighten gaps. |
 | `rowSpacing` | 20 | Baseline distance between suit rows within a hand. |
 | `suitGap` | 24 | Distance from the suit symbol's starting x-coordinate to the cards' starting x-coordinate. |
-| `handGap` | 24 | Requested baseline distance from the last suit row to the first row of the next band of hands. |
-| `columnGap` | 12 | Horizontal gap between the three hand columns. |
+| `handGap` | 24 | Horizontal offset from the N/S hand starts to the rose’s left edge; also the requested baseline gap between bands of hands. |
+| `columnGap` | 12 | Additional clearance between each E/W column and the rose, beyond `handGap`. |
 | `padding` | 12 | Space around the diagram. |
 
 `fontSize` and `rowSpacing` must be positive; other layout distances must be
@@ -58,7 +58,16 @@ nonnegative. `letterSpacing` and `wordSpacing` may be negative provided estimate
 character advances remain positive. All values must be finite decimal numbers
 with magnitude at most 1000. Invalid settings raise `bridge.svg` errors.
 
-The canvas dimensions and compass position are recalculated from these options.
+The rose stays centered in the canvas. North and South share a starting x-coordinate
+exactly `handGap` left of the rose's left edge. East and West reserve equal widths,
+using the longest displayed suit in either of those hands. West's column ends
+`handGap + columnGap` before the rose's left edge; East starts the same distance
+after its right edge. Longer outer suits expand both sides equally, leaving the
+N/S-to-rose offset unchanged. Long N/S suits can add equal outer margins to prevent
+clipping. Thus diagrams centered on a page keep their roses and N/S starts aligned
+when using the same spacing options. Hiding the rose retains these horizontal anchors.
+
+The canvas dimensions and vertical compass position are recalculated from these options.
 Very small `handGap` values are enlarged to reserve the estimated font height;
 compact rows also reserve space for the 56-unit compass when enabled. Deliberately
 small `rowSpacing` or `suitGap` values can overlap text. Width calculations reserve

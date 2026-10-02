@@ -211,7 +211,7 @@ component {
 
 		// Reserve a conservative monospace advance; negative spacing can tighten text
 		// without shrinking the canvas below its unspaced estimate.
-		columnWidth = max(56, settings.suitGap + settings.fontSize);
+		handWidths = {n:0, e:0, s:0, w:0};
 		for (seat in hands) {
 			if (isDeal && !findNoCase(seat, settings.deal)) continue;
 			for (suit in ["s","h","d","c"]) {
@@ -219,10 +219,29 @@ component {
 				spaces = len(cards) - len(replace(cards, " ", "", "all"));
 				cardWidth = len(cards) * (settings.fontSize * 9 / 14 + max(0, settings.letterSpacing))
 					+ spaces * max(0, settings.wordSpacing);
-				columnWidth = max(columnWidth, settings.suitGap + cardWidth);
+				handWidths[seat] = max(handWidths[seat], settings.suitGap + cardWidth);
 			}
 		}
-		width = 2 * settings.padding + (isDeal ? 3 * columnWidth + 2 * settings.columnGap : columnWidth);
+		if (isDeal) {
+			// Equal E/W columns flank the rose. Anchor N/S to the rose, never to
+			// a content-sized middle column. Symmetric bounds keep centered deals aligned.
+			ewWidth = max(handWidths.e, handWidths.w);
+			nsWidth = max(handWidths.n, handWidths.s);
+			roseWidth = 56;
+			wingExtent = roseWidth / 2 + settings.handGap + settings.columnGap + ewWidth;
+			nsLeftExtent = roseWidth / 2 + settings.handGap;
+			halfWidth = max(wingExtent, max(nsLeftExtent, nsWidth - nsLeftExtent));
+			width = 2 * (settings.padding + halfWidth);
+			roseX = width / 2 - roseWidth / 2;
+			centerX = roseX - settings.handGap;
+			westX = centerX - settings.columnGap - ewWidth;
+			eastX = roseX + roseWidth + settings.handGap + settings.columnGap;
+		} else {
+			width = 2 * settings.padding + max(56, handWidths.n);
+			centerX = settings.padding;
+			westX = centerX;
+			eastX = centerX;
+		}
 		topBaseline = settings.padding + settings.fontSize;
 		// handGap is the baseline gap after the final suit row. Also reserve space
 		// for large fonts and the fixed-size compass when suit rows are compact.
@@ -236,9 +255,8 @@ component {
 			& '" font-size="' & settings.fontSize & '" letter-spacing="' & settings.letterSpacing
 			& '" word-spacing="' & settings.wordSpacing & '" width="' & width & '" height="' & height & '" viewBox="0 0 ' & width & ' ' & height & '" role="img">',
 			'<title>' & xmlFormat(settings.title) & '</title>', '<style type="text/css">' & css & '</style>'];
-		centerX = settings.padding + columnWidth + settings.columnGap;
-		positions = {n:[centerX, topBaseline], w:[settings.padding, topBaseline + bandStep],
-			e:[centerX + columnWidth + settings.columnGap, topBaseline + bandStep], s:[centerX, topBaseline + 2 * bandStep]};
+		positions = {n:[centerX, topBaseline], w:[westX, topBaseline + bandStep],
+			e:[eastX, topBaseline + bandStep], s:[centerX, topBaseline + 2 * bandStep]};
 		for (seat in ["n","w","e","s"]) {
 			if (!structKeyExists(hands, seat) || (isDeal && !findNoCase(seat, settings.deal))) continue;
 			x = isDeal ? positions[seat][1] : settings.padding;
