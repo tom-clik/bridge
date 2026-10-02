@@ -1,0 +1,25 @@
+table.bridgesuitcombo .cards {
+	font-family:inherit;
+	word-spacing:inherit;
+}
+
+/* try and line it up properly rather than just giving a left margin to n and s*/
+table.bridgesuitcombo td.w {
+	text-align: right;
+	padding-right:20px;
+	width:50%;
+}
+
+table.bridgesuitcombo td.e {
+	text-align: left;
+	padding-left:20px;
+	width:50%;
+}
+
+table.bridgesuitcombo td.n, table.bridgesuitcombo td.s {
+	text-align: center;
+}
+
+span.suit.h, span.suit.d {
+	color: red;
+}

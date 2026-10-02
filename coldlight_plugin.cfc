@@ -10,13 +10,19 @@ component implements="coldlight.plugins.pluginInterface" {
 
 	public string function preProcess(required string text) localmode=true {
 
+		/**
+		 * Process the whole text string before processings
+		 *
+		 * arguments.text = Replace(arguments.text,"♠","&spade;","all");
+		 * 
+		 */
 		return arguments.text;
 		
 	}
 
-	public void function process(required node, required struct document) localmode=true {
+	public void function process(required struct section, required struct document) localmode=true {
 
-		hands = arguments.node.select("bridge");
+		hands = arguments.section.node.select("bridge");
 		count = 1;
 		tags = {};
 
@@ -26,14 +32,19 @@ component implements="coldlight.plugins.pluginInterface" {
 				html = variables.bridgeObj.bridgeTag(hand, arguments.document.basepath);
 			}
 			catch (any e) {
-				html = "<!-- Failed to parse bridge hand -->";
+				local.extendedinfo = {"error"=e,"hand"=hand};
+				throw(
+					extendedinfo = SerializeJSON(local.extendedinfo),
+					message      = "Failed to parse bridge hand"
+				);
 			}
 			tags[count] = html;
 			hand.html("").attr("id", "bridgetag-#count#");
 			count++;
 		}
 
-		wrapSuits(arguments.node);
+		variables.bridgeObj.formatInlineAuctions(arguments.section.node);
+		wrapSuits(arguments.section.node);
 
 		// now put them back
 		for (hand in hands) {
@@ -48,43 +59,8 @@ component implements="coldlight.plugins.pluginInterface" {
      * Wraps card suit symbols with <span class='suit X'> elements.
      * Example: ♠ → <span class='suit s'>♠</span>
      */
-    public void function wrapSuits(string node) localmode=true {
-        
-    	// Map of suits and their CSS class suffixes
-        suits = {
-            "♠": "s",
-            "♥": "h",
-            "♦": "d",
-            "♣": "c"
-        };
-
-        // Loop through every text node in the document
-        for (element in node.select("*")) {
-            textNodes = element.textNodes();
-
-            for (textNode in textNodes) {
-                text = textNode.getWholeText();
-                replaced = text;
-
-                // Replace each suit symbol safely
-                for (symbol in suits) {
-                    cssClass = suits[symbol];
-                    replacement = "<span class='suit " & cssClass & "'>" & symbol & "</span>";
-                    replaced = replaced.replace(symbol, replacement);
-                }
-
-                // If any change was made, replace the node
-                if (!replaced.equals(text)) {
-                    // Parse the replaced fragment safely as HTML
-                    fragment = variables.jsoupObj.Jsoup.parse(replaced).body().childNodes();
-                    for (node in fragment) {
-                        textNode.before(node);
-                    }
-                    textNode.remove();
-                }
-            }
-        }
-
+    public void function wrapSuits(required node) {
+        variables.bridgeObj.wrapSuitSymbols(arguments.node);
     }
 
 

@@ -1,3 +1,5 @@
 # CFML Bridge
 
-CFML library for parsing and displaying bridge hands
+Tom's Bridge Notes and Code Libraries
+
+

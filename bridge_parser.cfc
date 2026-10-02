@@ -16,9 +16,94 @@ Returns HTML for hand, suit combo, or deal diagram
 
 component {
 
-	public function init(required jsoupObj) {
+	public function init(required jsoupObj, boolean debug=0) {
 		variables.jsoupObj = arguments.jsoupObj; 
+		variables.playerList = ['n','e','w','s'];
+		this.debug = arguments.debug;
+
 		return this;
+	}
+
+	/** Convert Markdown inline code to publication auction text, keeping code blocks literal. */
+	public void function formatInlineAuctions(required node) localmode=true {
+		for (code in arguments.node.select("code")) {
+			if (!isNull(code.closest("pre")) || !isInlineAuction(code.text())) continue;
+			code.tagName("span").addClass("bridge-inline-auction");
+		}
+	}
+
+    /** Only bridge call sequences should lose their inline code semantics. */
+    public boolean function isInlineAuction(required string text) {
+        return reFindNoCase("^\s*\(?\s*(?:[1-7](?:NT|[SHDC♠♥♦♣])|PASS|P|DBL|RDBL|XX|X|\?)\s*\)?(?:[\s,;:\-–—→]+\(?\s*(?:[1-7](?:NT|[SHDC♠♥♦♣])|PASS|P|DBL|RDBL|XX|X|\?)\s*\)?)*\s*$", arguments.text) > 0;
+    }
+
+    /** Process text and inline auctions without reserializing the caller's document. */
+    public string function formatInlineHtml(required string html) localmode=true {
+        // Match complete literal blocks before individual tags. Quoted > stays inside a tag.
+        tagPattern = "<(?:[^>""']|""[^""]*""|'[^']*')*>";
+        expression = "<!--.*?-->|<(pre|script|style|textarea|title|bridge)\b[^>]*>.*?</\1\s*>|<code\b[^>]*>.*?</code\s*>|" & tagPattern;
+        patternClass = createObject("java", "java.util.regex.Pattern");
+        matcher = patternClass.compile(expression, patternClass.CASE_INSENSITIVE + patternClass.DOTALL).matcher(arguments.html);
+        result = [];
+        cursor = 1;
+        suitSpanDepth = 0;
+        while (matcher.find()) {
+            start = matcher.start() + 1;
+            if (start > cursor) {
+                text = mid(arguments.html, cursor, start - cursor);
+                result.append(suitSpanDepth ? text : wrapSuitText(text));
+            }
+            tag = matcher.group();
+            if (reFindNoCase("^<code\b", tag)) {
+                document = variables.jsoupObj.Jsoup.parse(tag);
+                code = document.select("code").first();
+                if (isInlineAuction(code.text())) {
+                    formatInlineAuctions(document);
+                    wrapSuitSymbols(document);
+                    tag = document.body().html();
+                }
+            } else if (reFindNoCase("^<span\b", tag)) {
+                if (suitSpanDepth || reFindNoCase("\bclass\s*=\s*['""][^'""]*\bsuit\b", tag)) suitSpanDepth++;
+            } else if (reFindNoCase("^</span\s*>", tag) && suitSpanDepth) {
+                suitSpanDepth--;
+            }
+            result.append(tag);
+            cursor = matcher.end() + 1;
+        }
+        if (cursor <= len(arguments.html)) {
+            text = mid(arguments.html, cursor, len(arguments.html) - cursor + 1);
+            result.append(suitSpanDepth ? text : wrapSuitText(text));
+        }
+        return result.toList("");
+    }
+
+    private string function wrapSuitText(required string text) localmode=true {
+        suits = {"♠":"s", "♥":"h", "♦":"d", "♣":"c"};
+        for (symbol in suits) {
+            arguments.text = replace(arguments.text, symbol, "<span class='suit " & suits[symbol] & "'>" & symbol & "</span>", "all");
+        }
+        return arguments.text;
+    }
+
+	/** Wrap visible suit characters without interpreting escaped text as HTML. */
+	public void function wrapSuitSymbols(required node) localmode=true {
+		suits = {"♠":"s", "♥":"h", "♦":"d", "♣":"c"};
+		for (element in arguments.node.select("*")) {
+			if (!isNull(element.closest("pre, code, script, style, .suit"))) continue;
+			for (textNode in element.textNodes()) {
+				// outerHtml retains escaping for literal <, > and & in inline auctions.
+				original = textNode.outerHtml();
+				replaced = original;
+				for (symbol in suits) {
+					replaced = replace(replaced, symbol, "<span class='suit " & suits[symbol] & "'>" & symbol & "</span>", "all");
+				}
+				if (replaced != original) {
+					fragment = variables.jsoupObj.Jsoup.parse(replaced).body().childNodes();
+					for (child in fragment) textNode.before(child);
+					textNode.remove();
+				}
+			}
+		}
 	}
 
 	/**
@@ -32,18 +117,11 @@ component {
 		if ( arguments.basepath != "" && right(arguments.basepath,1) != "/" ) {
 			arguments.basepath &= "/";
 		}
-		local.class = arguments.node.attr("class");
-
+		
 		local.tagAtts = variables.jsoupObj.getAttributes(arguments.node);
-		if (local.class != "") {
-			local.tagAtts["class"] = local.class;
-		}
-
+		
 		if ( StructKeyExists(local.tagAtts,"file") ) {
 			try {
-				// if ( Left(local.tagAtts.file,4) == "http" ) {
-				//     local.tagAtts.file = arguments.basepath & local.tagAtts.file;
-				// }
 				local.tagContents = FileRead( getCanonicalPath( arguments.basepath & local.tagAtts.file) );
 			} 
 			catch (filemissing cfcatch) {
@@ -54,7 +132,7 @@ component {
 		}
 
 		try {
-			retVal = parseBridgeData(text=local.tagContents,styleAtts =local.tagAtts);
+			retVal = parseBridgeData(text=local.tagContents,styleAtts = local.tagAtts);
 		}
 		catch (any e) {
 			local.extendedinfo = {"error"=e,"tagAtts"=local.tagAtts,"text"=local.tagContents};
@@ -72,14 +150,7 @@ component {
 	 */
 	private function getClasses(required struct styles) localmode="true" {
 		
-		// applied to all
-		classes = {
-			"hand"="bridgehand",
-			"pbn" ="bridgefull",
-			"suit"="bridgesuitcombo"
-		}
-
-		className = classes[arguments.styles.type] ? : "unknown";
+		className = "bridge";
 
 		// user applied classes
 		if (  arguments.styles.keyExists("class" ) ) {
@@ -111,49 +182,41 @@ component {
 	 * The numbers can be 0, 2, or 4. These will adjust "deal" and "auction" settings.
 	 *
 	 * `info` will set  “scoring”, “vulnerable”, and “dealer” to true
-	 *
-	 * 
 	 * 
 	 */
-	private function parseStyleShortcuts(styles) {
+	private function parseStyleShortcuts(required struct styles) localmode=true {
 		
-		var style = false;
-		var numsStr = false;
-		var tag = false;
-		var options = false;
-		var tagList = false;
-		var i = false;
-		
-		local.tagsTemp = ["hands","auction"];
+		compassTags = ["deal","auction"];
 
-		if (StructKeyExists(arguments.styles,'style')) {
-			style = arguments.styles['style'];
-			// # style = hands(_auction)(_info)
-			// # where hands is 0, 2 or 4, auction is 0,2 or 4
+		if ( StructKeyExists(arguments.styles,'style') ) {
+			style = ListToArray( arguments.styles['style'], "_" );
+			
+			// # style = deal(_auction)(_info)
+			// # where deal is 0, 2 or 4, auction is 0,2 or 4
 			// # and info is 1,0 or all. auction and info default to 0
 			
 			numsStr = {};
 
-			/* first Item is hands */
-			numsStr['hands'] = ListFirst(arguments.styles.style,"_");
+			/* first Item is deal */
+			numsStr['deal'] = style[1];
 			/* second item is auction */
-			if (ListLen(arguments.styles.style,"_") gt 1) {
-				numsStr['auction'] = ListGetAt(arguments.styles.style,2,"_");
+			if ( style.len()  gt 1) {
+				numsStr['auction'] = style[2];
 			}
 			else {
 				numsStr['auction'] = '0';
 			}
 			/* third item is info */
-			if (ListLen(arguments.styles.style,"_") gt 2) {
-				numsStr['info'] = ListGetAt(arguments.styles.style,3,"_");
+			if (style.len()  gt 2) {
+				arguments.styles['info'] = style[3];
 			}
 			else {
-				numsStr['info'] = '0';
+				arguments.styles['info'] = '0';
 			}
 
 			// #convert number to string value. 2 = ns, 4=nsew
 			
-			for (tag in local.tagsTemp) {
+			for (tag in compassTags) {
 				
 				if (numsStr[tag] == '2') {
 					arguments.styles[tag] = 'ns';
@@ -174,41 +237,31 @@ component {
 			}
 		}
 
+		else {
+			StructAppend(arguments.styles, {"info"=false}, false);
+		}
+
 		// # info = boolean for basic tags, 'all' for full tags
 		// # remember these will only show if the tag is defined.
 		
 		// list of all options
-		options = ['dealer','scoring','vulnerable','lead','contract','result','par','players','positions'];
+		options = ['dealer'=1,'scoring'=1,'vulnerable'=1,'lead'=0,'contract'=0,'result'=0,'par'=0,'players'=0,'positions'=0];
 
-		// list of tags to turn on if not defined explicitly
+		// create list of tags to turn on if not defined explicitly
 		tagList = [];
 		
-		if (StructKeyExists(arguments.styles,'info')) {
-			if (arguments.styles['info'] == 'all') {
-				tagList = Duplicate(options);
-			}
-			else if (styles['info']) {
-				tagList = ListToArray("#options[1]#,#options[2]#,#options[3]#");
-			}
-		}
-
-
-		for (tag in options) {
+		// go through each option and check if it was supplied explicitly or by using info short cut
+		loop collection=options key="tag" value="basic" {
 			
-			if (not StructKeyExists(arguments.styles,tag)) {
-				arguments.styles[tag] = (ArrayFind(tagList,tag) AND 1);
+			if ( StructKeyExists(arguments.styles, tag)) {
+				arguments.styles[tag] = isValid("boolean",arguments.styles[tag]) ?  ( arguments.styles[tag] && true ) : 0;
 			}
 			else {
-				try {
-					arguments.styles[tag] = arguments.styles[tag] AND 1;
-				}
-				catch (any e) {
-					arguments.styles[tag] = 0;
-				}
+				arguments.styles[tag] = (arguments.styles['info'] eq "all" OR arguments.styles['info'] && basic );
 			}
 		}
 
-		for (tag IN local.tagsTemp) {
+		for (tag IN compassTags) {
 			if (NOT StructKeyExists(arguments.styles,tag)) {
 				styles[tag] = 'nsew';
 			}
@@ -216,78 +269,183 @@ component {
 
 		 // # show deal rose in middle? Default is yes with more than one hand to show
 		if (NOT StructKeyExists(arguments.styles,'rose')) {
-			arguments.styles['rose'] = (len(arguments.styles['hands']) gt 1);
+			arguments.styles['rose'] = (len(arguments.styles['deal']) gt 1);
 		}
 	 
 	}
 
-	// parse the full data
-
-	private function parsePBN(text) {
-
-		// line = re.compile();
+	/**
+		@hint parse the full data 
 		
-		var rows = ListToArray(text,chr(10));
-		var currenttag = "";
-		var tagData = "";
-		var tagText = "";
-		var pbnData = {};
-		var i = false;
+		First loop over the text and create a struct keyed by main tag name
+
+		Each value is another struct with key attibributes and text
 		
-		for (i=1;i lte ArrayLen(rows);i+=1) {
-			row = Trim(rows[i]);
-		   
-			// # most tags are one-liners like [dealer ""]. In this case we just get the data,
-			// # some though are multi lines like auction. If this is the case we append the
-			// # line to the text of the previous tag. 
 
-			if (REFind("\[\w+(\s+"".*?"")?\]",row)) {
-				currenttag = Trim(ListFirst(row,"[]"""));    
-				if (ListLen(row,"[]""") gt 1) {
-					tagData = Trim(ListLast(row,"[]"""));
-				} else {
-					tagData = "";
-				}
+	*/
 
-				if (tagData neq "" AND NOT ListFindNoCase("auction,play",currenttag)) {
-					// # special case for notes -- we store an Array of structs with keys note and marker
-					// e.g. [note "1:12-14"]
-					if (currenttag == 'note') {
-						if (not StructKeyExists(pbnData,'notes')) {
-							pbnData['notes'] = ArrayNew(1);
-						}
-						note = {};
-						note['marker'] = ListFirst(tagData,":");
-						note['note'] = ListRest(tagData,":");
-						ArrayAppend(pbnData['notes'],note);
+	private function parsePBN(required string text) localmode=true {
+
+		data = parseTaggedText(text);
+
+		pbnData = {};
+		currentTag = "";
+
+		for ( tag in data ) {
+			
+			switch (tag.tag) {
+				case "deal":
+					pbnData["deal"] = parseDealData(tag.attributes);
+					break;
+				case "auction":
+					if ( tag.attributes neq "")  {
+						pbnData["dealer"] = tag.attributes;
 					}
-					else {
-						pbnData[currenttag] = tagData;
+					pbnData["auction"] = parseAuction( tag.text );
+					break;
+				case "note":
+					// ignore play notes for now
+					if ( currentTag != "auction") continue;
+					if (not StructKeyExists(pbnData,'notes')) {
+						pbnData['notes'] = ArrayNew(1);
 					}
-				}
-			}
-			else if (currenttag neq "") {
-				if (StructKeyExists(pbnData,currenttag)) {
-					pbnData[currenttag] &= chr(10) & row;
-				}
-				else {
-					pbnData[currenttag] = row;
-				}
-			}
-		}
+					note = {};
+					note['marker'] = ListFirst(tag.attributes,":");
+					note['note'] = ListRest(tag.attributes,":");
+					ArrayAppend(pbnData['notes'],note);
+					break;
+				default:
+					pbnData[tag.tag] = tag.attributes;
 
-		for (tag in pbnData) {
-			if (tag == "auction") {
-				pbnData[tag] = parseAuction(pbnData[tag]);
 			}
-			else if (tag == "deal") {
-				pbnData[tag] = parseDealData(pbnData[tag]);
+
+			// Notes belong to the preceding section; do not let the first note
+			// hide the auction context from subsequent notes (or admit play notes).
+			if (tag.tag != "note") {
+				currentTag = tag.tag;
 			}
 		}
 		
 		return pbnData;
 	}
 
+	/**
+	 * @hint Convert tagged text to array
+	 *
+	 * Values are struct with keys tag, attributes, and text
+	 * Can't convert to struct as some keys are duplicate (e.g. note)
+	 *
+	 * Also note may belong to auction or play
+	 * 
+	 */
+	
+	array function parseTaggedText( required string input) {
+	    var result = [];
+	    var lenInput = len(arguments.input);
+
+	    var i = 1;
+	    var ch = "";
+
+	    var inTag = false;
+	    var inQuote = false;
+	    var readingTagName = false;
+	    var readingAttribute = false;
+
+	    var currentTagName = "";
+	    var currentAttributes = "";
+	    var currentText = "";
+
+	    var currentKey = "";
+
+	    for (i = 1; i <= lenInput; i++) {
+	        ch = mid(arguments.input, i, 1);
+
+	        // Only a complete PBN header starts a record; auction markers such
+	        // as [1] must remain in the text passed to parseAuction.
+	        if (!inTag && ch == "[" && reFind('\[\s*[A-Za-z][A-Za-z0-9_]*\s+"[^"]*"\s*\]', arguments.input, i) == i) {
+	            // Save previous tag before starting new one
+	            if (len(currentKey)) {
+	                result.append( {
+	                    tag = currentKey,
+	                    attributes = currentAttributes,
+	                    text = trim(currentText)
+	                });
+	            }
+
+	            // Reset state for new tag
+	            inTag = true;
+	            inQuote = false;
+	            readingTagName = true;
+	            readingAttribute = false;
+
+	            currentTagName = "";
+	            currentAttributes = "";
+	            currentText = "";
+	            currentKey = "";
+
+	            continue;
+	        }
+
+	        if (inTag) {
+	            // End of tag
+	            if (!inQuote && ch == "]") {
+	                inTag = false;
+	                readingTagName = false;
+	                readingAttribute = false;
+
+	                currentKey = lCase( currentTagName );
+	                continue;
+	            }
+
+	            // Quote handling for attributes
+	            if (ch == '"') {
+	                inQuote = !inQuote;
+
+	                if (inQuote) {
+	                    readingTagName = false;
+	                    readingAttribute = true;
+	                }
+	                else {
+	                    readingAttribute = false;
+	                }
+
+	                continue;
+	            }
+
+	            // Build tag name until first space or quote
+	            if (readingTagName) {
+	                if (ch != " " && ch != chr(9) && ch != chr(10) && ch != chr(13)) {
+	                    currentTagName &= ch;
+	                }
+	                continue;
+	            }
+
+	            // Build attribute text only while inside quotes
+	            if (readingAttribute && inQuote) {
+	                currentAttributes &= ch;
+	                continue;
+	            }
+
+	            continue;
+	        }
+
+	        // Outside tag, this belongs to current tag's text
+	        if (len(currentKey)) {
+	            currentText &= ch;
+	        }
+	    }
+
+	    // Save the final tag
+	    if (len(currentKey)) {
+	        result.append( {
+	            tag = currentKey,
+	            attributes = currentAttributes,
+	            text = trim(currentText)
+	        });
+	    }
+
+	    return result;
+	}
 
 	private function getScoringStr(str) {
 		
@@ -406,18 +564,14 @@ component {
 
 
 	/**
-	 * parse a strin like "S:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85"
-	 * into a four key struct (nsew) of bridge hands (also 4key struct -- see parseHand())
+	 * parse a string like "S:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85"
+	 * into a four key struct (nsew) of bridge hands (also a 4 key struct -- see parseHand())
 	 * The first position e.g. S: is optional, the default is south.
 	 * 
 	 * @dealStr [description]
 	 */
-	private function parseDealData(dealStr) {
+	private function parseDealData(required string dealStr) localmode=true {
 		
-		var startpos = false;
-		var deal = false;
-		var startpos = false;
-
 		if (ListLen(arguments.dealStr,":") gt 1) {
 			startpos = ListFirst(arguments.dealStr,":");
 			deal = ListLast(arguments.dealStr,":");
@@ -429,14 +583,15 @@ component {
 
 		deal = ListToArray(deal, " #chr(13)#");
 		dealData ={};
-		dealData['n']="";
-		dealData['s']="";
-		dealData['w']="";
-		dealData['e']="";
+		dealData['n']={"s"="-","h"="-","d"="-","c"="-"};
+		dealData['s']={"s"="-","h"="-","d"="-","c"="-"};
+		dealData['w']={"s"="-","h"="-","d"="-","c"="-"};
+		dealData['e']={"s"="-","h"="-","d"="-","c"="-"};
 		
-		for (i = 1; i lte ArrayLen(deal); i+= 1){
-			hand = deal[i];
-			dealData[startpos] = parseHand(hand);
+		for (hand in deal){
+			if ( Trim(hand) neq "-" ) {
+				dealData[startpos] = parseHand(hand);
+			}
 			startpos = getNextPosition(startpos);
 		}
 
@@ -444,37 +599,29 @@ component {
 
 	}
 
-	private function parseHand(handStr) {
+	private function parseHand(required string text) {
 		
 		var suits = false;
 		var handData = {};
 
-		retStr = tidyHand(arguments.handStr);
+		retStr = tidyHand(text=arguments.text);
 
-		/* old school might have 4 lines and an explicit type="hand" set */
-		if (Trim(retStr) eq "-") {
-			return handData;
-		}
-		else if (Find(".",retStr)) {
-			if (Left(retStr,1) eq '.') {
-				retStr = '-' & retStr;
-			}
-
-			if (Right(retStr,1) eq '.') {
-				retStr = retStr & '-';
-			}
-			
-			retStr  = replace(retStr,"..",".-.","all");
-			// edge case from BOFPP!! 
-			retStr  = replace(retStr,"..",".-.","all");
-			suits = ListToArray(retStr,".");
-		}
-		else {
-			suits = ListToArray(retStr,"#chr(10)#,#chr(13)#, ");
+		if (Left(retStr,1) eq '.') {
+			retStr = '-' & retStr;
 		}
 
+		if (Right(retStr,1) eq '.') {
+			retStr = retStr & '-';
+		}
+		
+		retStr  = replace(retStr,"..",".-.");
+		
+		suits = find(".", retStr)
+			? ListToArray(retStr, ".")
+			: ListToArray(retStr, "#chr(10)##chr(13)#, ");
+		
 		if (not ArrayLen(suits) == 4) {
-			throw(message = 'Hand [#arguments.handStr#]only has ' & ArrayLen(suits) & ' suits',type="bridge");
+			throw(message = 'Hand [#arguments.text#]only has ' & ArrayLen(suits) & ' suits',type="bridge");
 		}
 	   
 		handData['s'] = suits[1];
@@ -485,14 +632,14 @@ component {
 		return handData;
 	}
 
-	private function tidyHand(handStr) {
+	private function tidyHand(required string text) {
 		
 		// # always work with T for 10 no matter what output option
-		arguments.handStr = replace(arguments.handStr, "10","T");
-		arguments.handStr = ucase(arguments.handStr);
-		arguments.handStr = ReReplaceNoCase(arguments.handStr,"[♠♥♦♣SHDC]","","all");
+		arguments.text = replace(arguments.text, "10","T");
+		arguments.text = ucase(arguments.text);
+		arguments.text = ReReplaceNoCase(arguments.text,"[♠♥♦♣SHDC]","","all");
 		
-		return arguments.handStr;
+		return arguments.text;
 	}
 
 	/*
@@ -518,17 +665,10 @@ component {
 	/* The main function. Takes the PBN or shorthand data and the styles as a Struct
 	Normally you call fnBridgeTag to parse this info from a tag and pass it to this function */
 
-	private function parseBridgeData(text,styleAtts={}) {
-
-		var options = false;
-		var option = false;
-		var retStr = false;
-		var pbndata = false;
-		var i = false;
-		var label = false;
+	private function parseBridgeData(text,styleAtts={}) localmode=true {
 
 		parseStyleShortcuts(arguments.styleAtts);
-		
+
 		// if we have tags, it's a full PBN type
 		if (ReFind("\[\w+.*?\]",arguments.text)) {
 			arguments.styleAtts["type"] = "pbn";
@@ -537,46 +677,30 @@ component {
 		// # short form options
 		if (not StructKeyExists(arguments.styleAtts,'type')) {
 			
-			// First cope with legacy hand format
-			arguments.text = reReplace(arguments.text, "\s*[♥♦♣]\s*", ".", "all");
-			arguments.text = reReplace(arguments.text, "\s*♠\s*", "", "all");
+			arguments.text =  checkHandType( text=arguments.text, styleAtts=arguments.styleAtts);
+			
+		}
 
-			if (REFindNoCase("^\s*[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s*$",arguments.text)
-				OR REFindNoCase("^\s*[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s*$",arguments.text)
-				) {
-				arguments.styleAtts["type"] = "suit";
-			}
-
-			// # 3. we have a single hand with dots
-			//re.match(,text, re.IGNORECASE)
-			else if (REFindNoCase("^\s*[AKQJTX\d\-]*\.[AKQJTX\d\-]*\.[AKQJTX\d\-]*\.[AKQJTX\d\-]*\s*$",arguments.text)) {
-				arguments.styleAtts["type"] = "hand";
-				// # inline true if it's one one line
-				if (not StructKeyExists(arguments.styleAtts,'inline')) {
-					if (find(chr(10),arguments.text)) {
-						arguments.styleAtts["inline"] = False;
-					}
-					else {
-						arguments.styleAtts["inline"] = True;
-					}
-				}
-			}
-			else {
-				arguments.styleAtts["type"] = "unknown";
-			}
+		// An explicit vertical hand overrides the inferred or requested inline layout.
+		if (arguments.styleAtts["type"] == "hand" && arguments.styleAtts.keyExists("vertical")
+			&& (!isBoolean(arguments.styleAtts.vertical) || arguments.styleAtts.vertical)) {
+			arguments.styleAtts["inline"] = false;
 		}
 
 		var classes = getClasses(arguments.styleAtts);
 		
 		if (arguments.styleAtts["type"] == "pbn") {
 
+			classes = listAppend(classes, "bridgefull", " ");
+
 			pbndata = parsePBN(text);
+			
 			retStr = '';
 			
 			options = ['dealer','scoring','vulnerable','lead','contract','result','par','players','positions'];
 			
-			for (i = 1; i lte ArrayLen(options); i+=1) {
-				option = options[i];
+			for (option in options) {
+				
 				if (StructKeyExists(styleAtts,option) AND styleAtts[option] neq 0 and StructKeyExists(pbndata,option)) {
 					if (option == 'dealer') {
 						label = "Dealer " & positionLabel(pbndata[option]);
@@ -598,34 +722,24 @@ component {
 				retStr = "<div class='bridgeinfo'>" & retStr & '</div>';
 			}
 
-			if (arguments.styleAtts['hands'] neq '0') {
+			if (arguments.styleAtts['deal'] neq '0') {
 				retStr &= displayDeal(pbndata,arguments.styleAtts);
 			}
 			if (arguments.styleAtts['auction'] neq '0') {
 				retStr &= displayAuction(pbndata,arguments.styleAtts);
 			}
 			
-			retStr = "<div class='#classes#'>" & retStr & "</div>";
 		}    
 	 
 		else if (styleAtts["type"] == "hand") {
-			// default for inline is OFF unless turned on earlier
-			// when using the short hand form
-			if (NOT StructKeyExists(styleAtts,"inline")) {
-				styleAtts["inline"] = 0;
-			}
-			local.hand = parseHand(text);
-			retStr = displayHand(hand=local.hand, inline=styleAtts["inline"],standalone=true,classes=classes);
-
+			local.hand = parseHand(text=arguments.text);
+			retStr = displayHand(hand=local.hand);
 		}
 
 		// # displayHand(hand)
-
 		else if (styleAtts["type"] == "suit") {
-
 			local.suit = parseSuitCombo(text);
-			retStr = displaySuitCombo(suit=local.suit,standalone=true,classes=classes);
-			
+			retStr = displaySuitCombo(suit=local.suit);
 		}
 
 		else {
@@ -633,121 +747,93 @@ component {
 			throw(message='Unknown type',type="bridge",extendedinfo=serializeJSON(extendedinfo));
 		}
 
-		retStr = replaceWhiteSpace(retStr);
+		id = arguments.styleAtts.keyExists("id") ? "id=#arguments.styleAtts.id# " : "";
+		imageAttribute = arguments.styleAtts.keyExists("data") && arguments.styleAtts.data.keyExists("image")
+			? ' data-image="' & encodeForHTMLAttribute(arguments.styleAtts.data.image) & '"'
+			: "";
+		if (len(imageAttribute) && arguments.styleAtts.keyExists("width")) {
+			imageAttribute &= ' width="' & encodeForHTMLAttribute(arguments.styleAtts.width) & '"';
+		}
 
+		wrapper = arguments.styleAtts["type"] == "hand" && listFind(classes, "inline", " ") ? "span" : "div";
+		retStr = "<#wrapper# #id#class='#classes#'#imageAttribute#>" & retStr & "</#wrapper#>";
+		
 		return retStr;
 	}
 
-	private function replaceWhiteSpace(inStr) {
+	/**
+	 * Deduce the type from the text either simple hand, simple suit combo, or full deal for anything else
+	 *
+	 * Checks the text and returns cleaned copy.
+	 */
+	private string function checkHandType(required text, required struct styleAtts) {
 
-		inStr = Replace(inStr,"\t",chr(9),"all");
-		inStr = Replace(inStr,"\n",chr(10),"all");
+		// First cope with legacy hand format
+		arguments.text = reReplace(arguments.text, "\s*[♥♦♣]\s*", ".", "all");
+		arguments.text = reReplace(arguments.text, "\s*♠\s*", "", "all");
 
-		return  inStr;
+		if (REFindNoCase("^\s*[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s*$",arguments.text)
+			OR REFindNoCase("^\s*[AKQJTX\d\-]*\s+[AKQJTX\d\-]*\s*$",arguments.text)
+			) {
+			arguments.styleAtts["type"] = "suit";
+		}
 
+		// # 3. we have a single hand with dots
+		//re.match(,text, re.IGNORECASE)
+		else if (REFindNoCase("^\s*[AKQJTX\d\-]*\.[AKQJTX\d\-]*\.[AKQJTX\d\-]*\.[AKQJTX\d\-]*\s*$",arguments.text)) {
+			arguments.styleAtts["type"] = "hand";
+			// # inline true if it's one one line
+			if (not StructKeyExists(arguments.styleAtts,'inline')) {
+				if (find(chr(10),arguments.text)) {
+					arguments.styleAtts["inline"] = False;
+				}
+				else {
+					arguments.styleAtts["inline"] = True;
+				}
+			}
+		}
+		else {
+			arguments.styleAtts["type"] = "unknown";
+		}
+
+		return arguments.text;
 	}
 
 	// # Display a full deal using the pbndata
-	private function displayDeal(pbndata,styleAtts) {
+	private function displayDeal(pbndata, styleAtts) localmode=true {
 
-		var shortclass = false;
-		var retStr = false;
-		var hideclass = false;
-		var roseStr = false;
-		var player = false;
-		var line = false;
-		var i = false;
-		var playerList = ['n','e','w','s'];
-		var lines = false;
+		tab = this.debug ? chr(9) : "";
+		cr = this.debug ? newLine() : "";
 
-
-		// #need to let css know if there is no north
-		if (NOT FindNoCase('n',arguments.styleAtts['hands'])) {
-			shortclass = " short";
-		}
-		else {
-			shortclass = "";
-		}
-			
-		retStr = "<div class='bridgedeal#shortclass#'>\n";
-		
-		// # display dealrose in middle. 
-		// # hide using css if not required so we keep its spacing
-		
-		if (NOT styleAtts['rose']) {
-			hideclass = " hidden";
-		}
-		else {
-			hideclass = "";
-		}
-
-		roseStr = "\t<div class='dealrose#hideclass#'>\n\t\t<div class='inner'>";
-
-		for (i=1;i lte ArrayLen(playerList);i+=1) {
-			position = playerList[i];
-			roseStr &= "\t\t\t<div class='r#position#'>#ucase(position)#</div>";
-		}
-
-		roseStr &= "\t\t</div>\n\t</div>\n";
-
-		logger("Display hands for #arguments.styleAtts['hands']#","i","bridge");
+		logger("Display hands for #arguments.styleAtts['deal']#","i","bridge");
 
 		// # display hands
-		for (i=1;i lte ArrayLen(playerList);i+=1) {
-
-			player = playerList[i];
-
-			// # NS hands flow in normal position. EW are positioned absolutely
-			// # we do the first three, then the deal rose, then south.
-
-			if (findNoCase(player,arguments.styleAtts['hands'])) {
-				retStr &= "\t<div class='dealhand " & player & "'>\n";
-				mydeal = displayHand(pbndata['deal'][player],False);
-				// # format source code nicely...
-
-				lines = ListToArray(mydeal, chr(10));
-				for (j=1;j lte ArrayLen(lines);j+=1){
-					retStr &= "\t\t" & lines[j] & "\n";
-				}
-
-				retStr &= "\t</div>\n";
-			}
-			else {
-				logger("#player# not found in hands","i","bridge");
-			}
-
-			// # add dealrose after w
-			if (arguments.styleAtts['rose'] and player == "w") {
-				retStr &= roseStr;
-			}
+		handsHtml = {};
+		for (player in variables.playerList) {
+			// TODO: better logic. Need space for E or W if we are showing one of them and also a N or S
+			// May well be better to canonicalise the "deal" and add all the permutations to CSS
+			show = findNoCase(player,arguments.styleAtts['deal']) ? "" : " hide";
+			handsHtml[player] = "#tab#<div class='dealhand " & player & show & "'>#cr#";
+			handsHtml[player] &= displayHand( pbndata['deal'][player] );
+			handsHtml[player] &= "#tab#</div>#cr#";
+			
 		}
 
-		retStr &= "\n</div>\n";
+		rosehtml = styleAtts.rose ? dealRose() : "";
+
+		retStr = "<div class='bridgedeal'>#cr#";
+		retStr &= "#tab#<div class='dealrow deal-top'>#handsHtml.n#</div>#cr#";
+		retStr &= "#tab#<div class='dealrow deal-middle'>#handsHtml.w##rosehtml##handsHtml.e#</div>#cr#";
+		retStr &= "#tab#<div class='dealrow deal-top'>#handsHtml.s#</div>#cr#";
+		retStr &= "#cr#</div>#cr#";
 
 		return retStr;
 	}
 
+	// Display a hand
+	private function displayHand(hand) localmode=true {
 
-	// # Display a simple hand
-	// # inline will output on same line
-
-	private function displayHand(hand,boolean inline=false, boolean standalone=false, classes="") {
-
-		var tag = false;
-		var retStr = false;
-		var i = false;
-		var suit = false;
-		var suitList = false;
-		
-		// display on one line
-		if (NOT arguments.inline) {
-			tag = "div";
-		}
-		else {
-			tag = "span";
-		}
-
-		retStr = "<" & tag & " class='#arguments.classes#'>";
+		retStr = "<span class='bridgehand'>";
 		
 		suitList = ["s","h","d","c"];
 
@@ -755,18 +841,29 @@ component {
 			throw(message="hand is not struct",type="bridge");
 		}
 
-		for (i = 1;i lte ArrayLen(suitList);i+=1) {
-			suit = suitList[i];
+		for (suit in suitList) {
 			retStr &= "<span class='suit " & suit & "'>" & getSymbol(suit) & "</span>";
 			retStr &= "<span class='cards'>" & suitFormat(arguments.hand[suit]) & "</span>";
-			if (NOT arguments.inline) {
-				retStr &= "<br />\n";
-			}
 		}
 
-		retStr &= "</" & tag & ">";
+		retStr &= "</span>";
 
 		return retStr;
+	}
+
+	private string function dealRose() localmode=true {
+		
+		tab = this.debug ? chr(9) : "";
+		cr = this.debug ? newLine() : "";
+
+		roseStr = "#tab#<div class='dealrose'>#cr##tab##tab#<div class='inner'>";
+
+		for (position in variables.playerList) {
+			roseStr &= "#tab##tab##tab#<div class='r#position#'>#ucase(position)#</div>";
+		}
+
+		roseStr &= "#tab##tab#</div>#cr##tab#</div>#cr#";
+		return roseStr
 	}
 
 	// # getSymbol
@@ -795,44 +892,33 @@ component {
 	}
 
 	/**
-	 * @hint Format a single suite for output
+	 * @hint Format a single suit for output
 	 * 
-	 * put 10's back in for ts and lowercase unknowns
-	 * Add space between every letter
-	 * 
+	 * Becuase we us 10, we can't use letter spacing and have to use word-spacing
+	* 
 	 * @suit  suit string without spaces
 	 */
-	private function suitFormat(string suit) {
+	private function suitFormat(string suit) localmode=true {
 		
-		var retStr = "";
-		var i = false;
-
-		for (i = 1; i lte Len(arguments.suit); i+=1) {
-			retStr &= Mid(arguments.suit, i, 1) & " ";
+		arguments.suit = trim( arguments.suit );
+		text = [];
+		for (i=1; i <= arguments.suit.len(); i++) {
+			text.append( mid( arguments.suit,i,1 ) );
 		}
-		retStr = replace(retStr, "T","10");
-		retStr = replace(retStr, "X","x");
+		text = text.toList(" ");
 
-		return trim(retStr);
+		text = replace(text, "T","10");
+		text = replace(text, "X","x","all");
+
+		return text;
 	}
 
 	// # displayAuction
 
-	private function displayAuction(pbndata, styleAtts) {
+	private function displayAuction(pbndata, styleAtts) localmode=true {
 
-		var retStr = false;
-		var roomStyle = false;
-		var player = false;
-		var lenclass = false;
-		var bidder = false;
-		var rownum = false;
-		var playerList = false;
-		var i = false;
-		var backList = false;
-		var oddeven = false;
-		var notestring = false;
-		var note = false;
-		var temp = false;
+		tab = this.debug ? chr(9) : "";
+		cr = this.debug ? newLine() : "";
 
 		// # default values
 		// ## default dealer always south
@@ -887,26 +973,26 @@ component {
 			lenclass = " size4";
 		}
 
-		retStr = "<div class='bridgeauction#roomStyle##lenclass#'>\n";
-		retStr &= "\t<table class='auction'>\n";
+		retStr = "<div class='bridgeauction#roomStyle##lenclass#'>#cr#";
+		retStr &= "#tab#<table class='auction'>#cr#";
 
 		playerList = ['South','West','North','East'];
 
 		// # Header rows with positions and/or names
-		retStr &= "\t\t<thead>\n";
+		retStr &= "#tab##tab#<thead>#cr#";
 		
-			retStr &= "\t\t\t<tr>";
+			retStr &= "#tab##tab##tab#<tr>";
 			for (i=1; i lte ArrayLen(playerList); i += 1) {
 				player = playerList[i];
 				if (FindNoCase(left(player,1),arguments.styleAtts['auction'])) {
 					retStr &= "<th  class='#player#'><div>#arguments.pbndata[player]#</div></th>";
 				}
 			}
-			retStr &= "</tr>\n";
+			retStr &= "</tr>#cr#";
 		
-		retStr &= "\t\t</thead>\n";
+		retStr &= "#tab##tab#</thead>#cr#";
 		
-		retStr &= "\t\t<tbody>\n";
+		retStr &= "#tab##tab#<tbody>#cr#";
 
 		// # Start auction rows
 		
@@ -937,7 +1023,7 @@ component {
 				oddeven = 'odd';
 			}
 			
-			retStr &= "\t\t\t<tr class='#oddeven#'>\n\t\t\t\t";
+			retStr &= "#tab##tab##tab#<tr class='#oddeven#'>#cr##tab##tab##tab##tab#";
 
 			try{
 				for (i=1; i lte 4; i += 1) {
@@ -971,10 +1057,10 @@ component {
                     message      = "Can't display auction:" & e.message
                 );
             }
-			retStr &= "\n\t\t\t</tr>\n";
+			retStr &= "#cr##tab##tab##tab#</tr>#cr#";
 		}
 
-		retStr &= "\t\t</tbody>\n\t</table>\n\n";
+		retStr &= "#tab##tab#</tbody>#cr##tab#</table>#cr##cr#";
 
 		// # Add list of notes in new table
 		
@@ -983,17 +1069,17 @@ component {
 		}
 
 		if (arraylen(arguments.pbndata["notes"])) {
-			retStr &= "\t<table class='notes'>\n";
+			retStr &= "#tab#<table class='notes'>#cr#";
 			
 			for (i=1; i lte ArrayLen(arguments.pbndata['notes']); i += 1) {
 				note = arguments.pbndata["notes"][i];
-				retStr &= "\t\t<tr><td>(#note.marker#)</td><td>#note.note#</td></tr>\n";
+				retStr &= "#tab##tab#<tr><td>(#note.marker#)</td><td>#note.note#</td></tr>#cr#";
 			}
 
-			retStr &= "\t</table>\n";
+			retStr &= "#tab#</table>#cr#";
 		}
 
-		retStr &= "</div>\n";
+		retStr &= "</div>#cr#";
 
 
 		return retStr;
@@ -1045,7 +1131,7 @@ component {
 
 
 	// # Display a simple suit combo
-	private function displaySuitCombo(required struct suit, string classes="") {
+	private function displaySuitCombo(required struct suit) {
 		
 		var retStr = false;
 		var standclass = "";
@@ -1057,42 +1143,35 @@ component {
 		   noMiddle = true;
 		   colspan = "";
 		}
+		retStr = [];
+		retStr.append("<table class='bridgesuitcombo'>");    
 
-		retStr = "<table class='#arguments.classes#'>\n";    
-
-		retStr &= "<tr><td class='n'#colspan#><span class='cards'>" & suitFormat(arguments.suit['n']) & "</span></td></tr>\n";
+		retStr.append("<tr><td class='n'#colspan#><span class='cards'>" & suitFormat(arguments.suit['n']) & "</span></td></tr>");
 		
 		// # ignore middle row if both void
 		if (not noMiddle) {
-			retStr &= "<tr><td class='w'><span class='cards'>" & suitFormat(arguments.suit['w']) & "</span></td>";
-			retStr &= "<td class='e'><span class='cards'>" & suitFormat(arguments.suit['e']) & "</span></td></tr>\n";
+			retStr.append("<tr><td class='w'><span class='cards'>" & suitFormat(arguments.suit['w']) & "</span></td>");
+			retStr.append("<td class='e'><span class='cards'>" & suitFormat(arguments.suit['e']) & "</span></td></tr>");
 		}
 
-		retStr &= "<tr><td class='s'#colspan#><span class='cards'>" & suitFormat(arguments.suit['s']) & "</span></td></tr>\n";
+		retStr.append("<tr><td class='s'#colspan#><span class='cards'>" & suitFormat(arguments.suit['s']) & "</span></td></tr>");
 		
-		retStr &= "</table>";
+		retStr.append("</table>");
 
-		return retStr;
+		return retStr.toList(newLine());
 	}
 
-	private function parseSuitCombo(dealStr) {
+	private function parseSuitCombo(required string deal) localmode=true {
 		
-		var hasStartPos = false;
-		var startpos = false;
-		var deal = false;
-		var dealData = false;
-		var hand = false;
-		var i = false;
-
-		arguments.dealStr = tidyHand(arguments.dealStr);
+		arguments.deal = tidyHand(arguments.deal);
 		
-		if (ListLen(arguments.dealStr,":") gt 1) {
-			startpos = ListFirst(arguments.dealStr,":");
-			deal = ListLast(arguments.dealStr,":");
+		if (ListLen(arguments.deal,":") gt 1) {
+			startpos = ListFirst(arguments.deal,":");
+			deal = ListLast(arguments.deal,":");
 		}
 		else {
 			startpos = 's';
-			deal = arguments.dealStr;
+			deal = arguments.deal;
 		}
 		
 		deal = ListToArray(deal," #chr(9)#");

@@ -5,13 +5,16 @@
 			"path": ".",
 		},
 		{
-			"path": "C:\\git\\dm\\ClikWriter\\Bridge"
+			"path": "C:\\git\\dm\\ClikWriter\\Bridge\\bidding Notes",
+		},
+		{
+			"path": "C:\\Users\\tom\\OneDrive\\Documents\\Personal\\Bridge\\records",
+		},
+		{
+			"path": "C:\\git\\dm\\ClikWriter\\Bridge",
+		},
+		{
+			"path": "C:\\git\\libraries\\coldlight\\sample"
 		},
 	],
-	"settings": {
-		"sublime-view-in-browser": {
-			"baseUrl": "http://localhost:8089/",
-			"basePath": "C:\\git\\libraries\\",
-		},
-	},
 }
