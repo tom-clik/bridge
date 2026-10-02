@@ -1,41 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="bridge-svg" width="390" height="264" viewBox="0 0 390 264" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="bridge-svg" font-size="14" letter-spacing="0" word-spacing="0" width="390" height="270.2" viewBox="0 0 390 270.2" role="img">
 <title>Bridge diagram</title>
 <style type="text/css">/* Embedded in each export so files and image elements need no host CSS. */
-.bridge-svg .bridge-svg-holding { font-family: monospace; font-size: 14px; fill: #111; }
+.bridge-svg .bridge-svg-holding { font-family: monospace; fill: #111; }
 .bridge-svg .bridge-svg-suit { font-family: "DejaVu Sans", sans-serif; }
 .bridge-svg .bridge-svg-h, .bridge-svg .bridge-svg-d { fill: #c00; }
 .bridge-svg .bridge-svg-s, .bridge-svg .bridge-svg-c { fill: #111; }
 .bridge-svg .bridge-svg-table { fill: #eee; stroke: #333; stroke-width: 1; }
-.bridge-svg .bridge-svg-label { font-family: sans-serif; font-size: 12px; font-weight: bold; text-anchor: middle; fill: #111; }
+.bridge-svg .bridge-svg-label { font-family: sans-serif; font-size: 12px; letter-spacing: 0; word-spacing: 0; font-weight: bold; text-anchor: middle; fill: #111; }
 .bridge-svg-mono .bridge-svg-suit { fill: #111; }
 </style>
 <g class="bridge-svg-hand bridge-svg-n">
-<text class="bridge-svg-holding" x="138" y="24"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="162">A 4 2</tspan></text>
-<text class="bridge-svg-holding" x="138" y="44"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="162">9 6 5</tspan></text>
-<text class="bridge-svg-holding" x="138" y="64"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="162">K 9</tspan></text>
-<text class="bridge-svg-holding" x="138" y="84"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="162">Q 9 7 4 2</tspan></text>
+<text class="bridge-svg-holding" x="138" y="26"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="162">A 4 2</tspan></text>
+<text class="bridge-svg-holding" x="138" y="46"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="162">9 6 5</tspan></text>
+<text class="bridge-svg-holding" x="138" y="66"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="162">K 9</tspan></text>
+<text class="bridge-svg-holding" x="138" y="86"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="162">Q 9 7 4 2</tspan></text>
 </g>
 <g class="bridge-svg-hand bridge-svg-w">
-<text class="bridge-svg-holding" x="12" y="108"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="36">K Q 9 8 3</tspan></text>
-<text class="bridge-svg-holding" x="12" y="128"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="36">4 3 2</tspan></text>
-<text class="bridge-svg-holding" x="12" y="148"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="36">Q 7 6</tspan></text>
-<text class="bridge-svg-holding" x="12" y="168"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="36">J 6</tspan></text>
+<text class="bridge-svg-holding" x="12" y="110"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="36">K Q 9 8 3</tspan></text>
+<text class="bridge-svg-holding" x="12" y="130"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="36">4 3 2</tspan></text>
+<text class="bridge-svg-holding" x="12" y="150"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="36">Q 7 6</tspan></text>
+<text class="bridge-svg-holding" x="12" y="170"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="36">J 6</tspan></text>
 </g>
 <g class="bridge-svg-hand bridge-svg-e">
-<text class="bridge-svg-holding" x="264" y="108"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="288">7 6</tspan></text>
-<text class="bridge-svg-holding" x="264" y="128"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="288">J 10 8 7</tspan></text>
-<text class="bridge-svg-holding" x="264" y="148"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="288">10 8 5 3 2</tspan></text>
-<text class="bridge-svg-holding" x="264" y="168"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="288">A K</tspan></text>
+<text class="bridge-svg-holding" x="264" y="110"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="288">7 6</tspan></text>
+<text class="bridge-svg-holding" x="264" y="130"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="288">J 10 8 7</tspan></text>
+<text class="bridge-svg-holding" x="264" y="150"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="288">10 8 5 3 2</tspan></text>
+<text class="bridge-svg-holding" x="264" y="170"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="288">A K</tspan></text>
 </g>
 <g class="bridge-svg-hand bridge-svg-s">
-<text class="bridge-svg-holding" x="138" y="192"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="162">J 10 5</tspan></text>
-<text class="bridge-svg-holding" x="138" y="212"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="162">A K Q</tspan></text>
-<text class="bridge-svg-holding" x="138" y="232"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="162">A J 4</tspan></text>
-<text class="bridge-svg-holding" x="138" y="252"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="162">10 8 5 3</tspan></text>
+<text class="bridge-svg-holding" x="138" y="194"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="162">J 10 5</tspan></text>
+<text class="bridge-svg-holding" x="138" y="214"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="162">A K Q</tspan></text>
+<text class="bridge-svg-holding" x="138" y="234"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="162">A J 4</tspan></text>
+<text class="bridge-svg-holding" x="138" y="254"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="162">10 8 5 3</tspan></text>
 </g>
-<rect class="bridge-svg-table" x="167" y="106" width="56" height="56"/>
-<text class="bridge-svg-label" x="195" y="120">N</text>
-<text class="bridge-svg-label" x="195" y="156">S</text>
-<text class="bridge-svg-label" x="177" y="138">W</text>
-<text class="bridge-svg-label" x="213" y="138">E</text>
+<rect class="bridge-svg-table" x="167" y="107.1" width="56" height="56"/>
+<text class="bridge-svg-label" x="195" y="121.1">N</text>
+<text class="bridge-svg-label" x="195" y="157.1">S</text>
+<text class="bridge-svg-label" x="177" y="139.1">W</text>
+<text class="bridge-svg-label" x="213" y="139.1">E</text>
 </svg>

@@ -24,6 +24,52 @@ and `rose` options apply only to full deals. Unknown options and invalid notatio
 raise errors. Auctions, suit combinations, player names, and other PBN metadata
 are not included. Existing HTML rendering is unchanged.
 
+## Spacing options
+
+Pass layout values in the second argument to `exportSvg` (the SVG conversion
+method). Values are numbers in SVG units, equivalent to pixels at intrinsic size.
+
+```cfml
+svg = parser.exportSvg(pbnText, {
+    fontSize: 14,
+    letterSpacing: 0,
+    wordSpacing: -2,
+    rowSpacing: 18,
+    suitGap: 22,
+    handGap: 28,
+    columnGap: 16,
+    padding: 12
+});
+```
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `fontSize` | 14 | Card and suit-symbol font size. |
+| `letterSpacing` | 0 | Extra spacing per character, including between the digits of `10`. |
+| `wordSpacing` | 0 | Extra spacing at the literal spaces between cards. Negative values tighten gaps. |
+| `rowSpacing` | 20 | Baseline distance between suit rows within a hand. |
+| `suitGap` | 24 | Distance from the suit symbol's starting x-coordinate to the cards' starting x-coordinate. |
+| `handGap` | 24 | Requested baseline distance from the last suit row to the first row of the next band of hands. |
+| `columnGap` | 12 | Horizontal gap between the three hand columns. |
+| `padding` | 12 | Space around the diagram. |
+
+`fontSize` and `rowSpacing` must be positive; other layout distances must be
+nonnegative. `letterSpacing` and `wordSpacing` may be negative provided estimated
+character advances remain positive. All values must be finite decimal numbers
+with magnitude at most 1000. Invalid settings raise `bridge.svg` errors.
+
+The canvas dimensions and compass position are recalculated from these options.
+Very small `handGap` values are enlarged to reserve the estimated font height;
+compact rows also reserve space for the 56-unit compass when enabled. Deliberately
+small `rowSpacing` or `suitGap` values can overlap text. Width calculations reserve
+conservative font advances and expand for positive letter/word spacing; negative
+spacing tightens text without reducing that safety allowance.
+
+Text options are inherited SVG presentation attributes on the root, so different
+inline diagrams can use different values without their embedded CSS conflicting.
+The compass labels retain their own 12px font and normal spacing. Use these options
+for sizing rather than changing font size in CSS, so layout can account for it.
+
 ## Styling and web use
 
 The stylesheet in `assets/css/bridge_svg.css` is embedded in every export. Edit
