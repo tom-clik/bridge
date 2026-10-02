@@ -10,7 +10,7 @@ svgPath = exampleDirectory & "svg_test.svg";
 pngPath = exampleDirectory & "_output/output.png";
 // Supply application font files here when the selected SVG fonts are not installed.
 // Example: [expandPath("../assets/fonts/MyCards.ttf"), expandPath("../assets/fonts/MySymbols.ttf")]
-fontFiles = [expandPath("../assets/fonts/dejavu-sans/DejaVuSans.ttf")];
+fontFiles = [expandPath("../assets/fonts/dejavu-sans-mono/DejaVuSansMono.ttf")];
 svgToPng(svgPath=svgPath, pngPath=pngPath, fontFiles=fontFiles);
 
 writeOutput("<img src='_output/output.png'>");
