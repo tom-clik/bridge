@@ -197,21 +197,29 @@ div.bridgeinfo p {
 /* middle row */
 .dealrow.deal-middle {
 	margin: var(--rose-margin) 0;
-    position:relative;
-    display: flex;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--rose-width) minmax(0, 1fr);
+    column-gap: var(--rose-margin);
+    align-items: start;
 }
 
+/* Keep side hands in flow so the row contains them even without a rose. */
 .dealhand.e {
-	position: absolute;
-	top:0;
-	left: calc( (( var(--hand-width) + var(--rose-width) ) / 2 ) + var(--rose-margin));
+	grid-column: 3;
+	grid-row: 1;
+	justify-self: start;
 }
 
 .dealhand.w {
-	position: absolute;
-	top:0;
-	right: calc( (( var(--hand-width) + var(--rose-width) ) / 2 ) + var(--rose-margin));
+	grid-column: 1;
+	grid-row: 1;
+	justify-self: end;
+}
+
+.deal-middle > .dealrose {
+	grid-column: 2;
+	grid-row: 1;
+	justify-self: center;
 }
 
 
