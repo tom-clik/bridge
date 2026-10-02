@@ -1,50 +1,41 @@
 <!---
-Optional ImageMagick conversion example. Requires `magick` on PATH and an SVG
-renderer with CSS support (such as librsvg). See docs/svg-export.md for CairoSVG.
-The generated SVG embeds its stylesheet; no HTML page or external CSS is needed.
+Convert the standalone SVG example to PNG using Apache Batik.
+Install Batik and its runtime dependencies on the CFML Java classpath first;
+see docs/svg-export.md. No external executable is required.
 --->
 
 <cfscript>
-svgPath = expandPath("svg_test.svg");
+exampleDirectory = getDirectoryFromPath(getCurrentTemplatePath());
+svgPath = exampleDirectory & "svg_test.svg";
+pngPath = exampleDirectory & "_output/output.png";
+svgToPng(svgPath, pngPath);
 
-pngPath = expandPath("_output/output.png");
-
-svgToPng(svgPath,pngPath);
-
-// Convert an SVG file to PNG using ImageMagick
-boolean function svgToPng(required string svgPath, required string pngPath, numeric density=300) localmode=true {
-    if ( !fileExists(svgPath) ) {
-        throw(type="FileNotFoundException", message="SVG file not found: " & svgPath);
+/** Convert at intrinsic SVG size, or set width to a target pixel width. */
+boolean function svgToPng(required string svgPath, required string pngPath, numeric width=0) localmode=true {
+    if (!fileExists(arguments.svgPath)) {
+        throw(type="FileNotFoundException", message="SVG file not found: " & arguments.svgPath);
+    }
+    if (arguments.width < 0) {
+        throw(type="bridge.svgConversion", message="PNG width must be zero (intrinsic size) or positive");
     }
 
-    // Build command array
-    cmd = [
-        "magick",
-        "-background", "transparent",
-        "-density", density,
-        svgPath,
-        pngPath
-    ];
-
-    // Start process
-    pb = createObject("java", "java.lang.ProcessBuilder").init(cmd);
-    pb.redirectErrorStream(true);
-    process = pb.start();
-
-    // Capture output (optional)
-    reader = createObject("java", "java.io.BufferedReader").init(createObject("java", "java.io.InputStreamReader").init(process.getInputStream()));
-    line = "";
-    while ((nextLine = reader.readLine()) != javacast("null", "")) {
-        line &= nextLine & chr(10);
+    transcoder = createObject("java", "org.apache.batik.transcoder.image.PNGTranscoder").init();
+    if (arguments.width > 0) {
+        transcoder.addTranscodingHint(transcoder.KEY_WIDTH,
+            createObject("java", "java.lang.Float").valueOf(javacast("string", arguments.width)));
     }
-    reader.close();
-
-    // Wait for completion
-    exitCode = process.waitFor();
-    if (exitCode != 0 || !fileExists(pngPath)) {
-        throw(type="bridge.svgConversion", message="ImageMagick SVG conversion failed", detail=line);
+    // A file URI handles spaces and gives Batik a base URI for relative resources.
+    source = createObject("java", "java.io.File").init(arguments.svgPath).toURI().toString();
+    input = createObject("java", "org.apache.batik.transcoder.TranscoderInput").init(source);
+    // Buffer the PNG so a failed transcode does not overwrite an existing output.
+    bytes = createObject("java", "java.io.ByteArrayOutputStream").init();
+    try {
+        output = createObject("java", "org.apache.batik.transcoder.TranscoderOutput").init(bytes);
+        transcoder.transcode(input, output);
+        fileWrite(arguments.pngPath, bytes.toByteArray());
+    } finally {
+        bytes.close();
     }
     return true;
 }
-
 </cfscript>

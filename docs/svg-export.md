@@ -112,10 +112,31 @@ python -m cairosvg testing/svg_test.svg -o deal.png -s 2
 ```
 
 This doubles the intrinsic pixel dimensions. Use `--background-color white` for
-an opaque white background. Batik and ImageMagick with an SVG-capable delegate
-can also consume standalone SVGs; renderer/font availability still matters.
-`testing/svg_convert.cfm` is an optional ImageMagick example requiring `magick`
-on PATH. Its failure status is checked, so an old PNG cannot mask a failed run.
+an opaque white background.
+
+### Apache Batik (CFML)
+
+`testing/svg_convert.cfm` uses Apache Batik's `PNGTranscoder` directly through Java.
+Install the Apache Batik binary distribution's runtime JARs and dependencies on
+your CFML server's Java classpath, or configure them through your application's
+`this.javaSettings.loadPaths`, then restart/reload the application as required.
+Batik's `batik-all` JAR alone is not sufficient: include XML Graphics Commons,
+XML APIs Extensions, and the distribution's supporting dependencies. Do not add
+these JARs to source control. This example was tested with Batik 1.19.
+
+Run `testing/svg_convert.cfm` to convert `testing/svg_test.svg` to
+`testing/_output/output.png`. The helper accepts an optional target pixel width:
+
+```cfml
+svgToPng(svgPath, pngPath);       // Intrinsic SVG dimensions, transparent background
+svgToPng(svgPath, pngPath, 1200); // 1200 pixels wide, preserving aspect ratio
+```
+
+The destination directory must already exist and be writable. Batik consumes the
+embedded stylesheet and needs suitable installed fonts, but no ImageMagick or
+external process. Conversion errors propagate to the caller; PNG bytes are
+buffered before writing so failed transcoding does not replace an existing file.
+Only pass trusted SVG files: Batik may resolve resources referenced by an SVG.
 
 ## Examples and verification
 
@@ -124,6 +145,9 @@ deal output; `testing/svg_inline.svg` shows a long single hand.
 `testing/svg_test.html` displays both as independent images.
 Run `testing/functions/testSvgExport.cfm` in the same CFML setup as the existing
 parser tests; it returns JSON with assertion counts and failures.
+With Batik installed, `testing/functions/testSvgConversion.cfm` additionally
+checks PNG dimensions, scaling, transparency, paths containing spaces, and failure
+handling. It regenerates the example PNG in `testing/_output`.
 
 The original experiments disabled the main font rule, relied on the HTML page's
 CSS, used `:first-of-type` for suit coloring, and compensated for spaced cards
