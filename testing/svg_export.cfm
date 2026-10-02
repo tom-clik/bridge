@@ -9,7 +9,9 @@ svg = parser.exportSvg('N:A42.965.K9.Q9742 76.JT87.T8532.AK JT5.AKQ.AJ4.T853 KQ9
 	suitGap:"4",
 	rowSpacing: "2"
 });
-fileWrite( expandPath("svg_sample.svg") ,svg);
+exampleDirectory = getDirectoryFromPath(getCurrentTemplatePath());
+fileWrite(exampleDirectory & "svg_sample.svg", svg, "utf-8");
+fileWrite(exampleDirectory & "svg_sample_inline.svg", parser.exportSvg("AKQJT98765432..."), "utf-8");
 cfcontent(type="image/svg+xml; charset=utf-8", reset=true);
 writeOutput(svg);
 </cfscript>

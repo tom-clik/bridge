@@ -1,2 +1,5 @@
 # Local Sublime Text session state
 *.sublime-workspace
+
+/testing/svg_sample.svg
+/testing/svg_sample_inline.svg

@@ -301,6 +301,101 @@ component {
 		return arrayToList(parts, chr(10));
 	}
 
+	/**
+	 * Convert one SVG path or an array of paths. Returns output paths in input order.
+	 * outputName overrides the filename for a single input; batches retain input names.
+	 * The output folder must exist. Shared Java objects, fonts and CSS load once per batch.
+	 */
+	public array function svgToPng(required any svgPath, required string outputFolder,
+		required string stylesheetPath, string outputName="", numeric width=0, array fontFiles=[]) localmode=true {
+        if (!isArray(arguments.svgPath) && !isSimpleValue(arguments.svgPath))
+            throw(type="bridge.svgConversion", message="svgPath must be a filename or an array of filenames");
+        sources = isArray(arguments.svgPath) ? arguments.svgPath : [arguments.svgPath];
+        if (!directoryExists(arguments.outputFolder))
+            throw(type="bridge.svgConversion", message="Output folder does not exist: " & arguments.outputFolder);
+        if (!fileExists(arguments.stylesheetPath))
+            throw(type="FileNotFoundException", message="Stylesheet not found: " & arguments.stylesheetPath);
+        if (arguments.width < 0)
+            throw(type="bridge.svgConversion", message="PNG width must be zero (intrinsic size) or positive");
+        if (len(arguments.outputName) && arrayLen(sources) != 1)
+            throw(type="bridge.svgConversion", message="outputName is only supported for a single input; batches use input filenames");
+        if (reFind("[/\\:]", arguments.outputName) || listFind(".,..", arguments.outputName))
+            throw(type="bridge.svgConversion", message="outputName must be a filename, not a path");
+
+        // Preflight the complete batch so a missing input or duplicate basename
+        // cannot leave surprising partial output or overwrite another batch item.
+        outputs = [];
+        seen = {};
+        folder = getCanonicalPath(arguments.outputFolder);
+        if (right(folder, 1) != "/" && right(folder, 1) != chr(92)) folder &= "/";
+        for (source in sources) {
+            if (!isSimpleValue(source) || !len(source) || !fileExists(source))
+                throw(type="FileNotFoundException", message="SVG input file is missing or invalid");
+            name = len(arguments.outputName) ? arguments.outputName : reReplace(getFileFromPath(source), "\.[^.]*$", "") & ".png";
+            if (!reFindNoCase("\.png$", name)) name &= ".png";
+            target = folder & name;
+            if (structKeyExists(seen, target))
+                throw(type="bridge.svgConversion", message="Duplicate PNG output name in batch: " & name);
+            if (compareNoCase(getCanonicalPath(source), getCanonicalPath(target)) == 0)
+                throw(type="bridge.svgConversion", message="PNG output must not replace its SVG input");
+            seen[target] = true;
+            outputs.append(target);
+        }
+        if (!arrayLen(sources)) return outputs;
+
+        batikSettings = {
+            maven: [
+                {groupId:"org.apache.xmlgraphics", artifactId:"batik-transcoder", version:"1.19"},
+                {groupId:"org.apache.xmlgraphics", artifactId:"batik-codec", version:"1.19"}
+            ]
+        };
+
+        fileClass = createObject("java", "java.io.File");
+
+        // Register fonts before Batik initializes its font resolver. Registration is
+        // JVM-wide; CSS must use the font's internal family name, not its filename.
+        graphics = createObject("java", "java.awt.GraphicsEnvironment").getLocalGraphicsEnvironment();
+        fontClass = createObject("java", "java.awt.Font");
+        fontRules = [];
+        for (fontPath in arguments.fontFiles) {
+            if (!fileExists(fontPath))
+                throw(type="FileNotFoundException", message="Font file not found: " & fontPath);
+            fontFile = fileClass.init(fontPath);
+            font = fontClass.createFont(fontClass.TRUETYPE_FONT, fontFile);
+            graphics.registerFont(font);
+            family = replace(replace(font.getFamily(), chr(92), chr(92) & chr(92), "all"), '"', chr(92) & '"', "all");
+            fontURI = replace(fontFile.toURI().toASCIIString(), '"', "%22", "all");
+            fontRules.append('@font-face { font-family: "' & family & '"; src: url("' & fontURI & '"); }');
+        }
+
+        transcoder = createObject("java", "org.apache.batik.transcoder.image.PNGTranscoder", batikSettings).init();
+        inputClass = createObject("java", "org.apache.batik.transcoder.TranscoderInput", batikSettings);
+        bytes = createObject("java", "java.io.ByteArrayOutputStream").init();
+        output = createObject("java", "org.apache.batik.transcoder.TranscoderOutput", batikSettings).init(bytes);
+        if (arguments.width > 0) {
+            transcoder.addTranscodingHint(transcoder.KEY_WIDTH,
+                createObject("java", "java.lang.Float").valueOf(javacast("string", arguments.width)));
+        }
+        stylesheet = "";
+        try {
+            stylesheet = getTempFile(getTempDirectory(), "bridge-batik-styles", ".css");
+            fileWrite(stylesheet, fileRead(arguments.stylesheetPath, "utf-8") & chr(10) & arrayToList(fontRules, chr(10)), "utf-8");
+            transcoder.addTranscodingHint(transcoder.KEY_USER_STYLESHEET_URI, fileClass.init(stylesheet).toURI().toString());
+            for (i=1; i <= arrayLen(sources); i++) {
+                // Only the input wrapper is file-specific. Reuse the transcoder,
+                // output wrapper and buffer, discarding prior bytes before each file.
+                bytes.reset();
+                input = inputClass.init(fileClass.init(sources[i]).toURI().toString());
+                transcoder.transcode(input, output);
+                fileWrite(outputs[i], bytes.toByteArray());
+            }
+        } finally {
+            bytes.close();
+            if (len(stylesheet) && fileExists(stylesheet)) fileDelete(stylesheet);
+        }
+        return outputs;
+    }
+
 	/** Normalize empty suits before reusing the existing hand parser. */
 	private struct function svgParseHand(required string text) localmode=true {
 		source = trim(tidyHand(arguments.text));
