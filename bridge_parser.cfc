@@ -146,6 +146,157 @@ component {
 	}
 
 	/**
+	 * Export a standalone SVG hand or deal (PBN or direction-prefixed deal text).
+	 * Options: deal (visible seats, default NESW), rose (true), monochrome (false),
+	 * title, fontSize, letterSpacing, wordSpacing, rowSpacing, suitGap, handGap,
+	 * columnGap and padding. Returns XML; callers choose where to save it.
+	 * Auctions and PBN metadata are not rendered by this diagram exporter.
+	 */
+	public string function exportSvg(required string text, struct options={}) localmode=true {
+		settings = {deal:"nesw", rose:true, monochrome:false, title:"Bridge diagram",
+			fontSize:14, letterSpacing:0, wordSpacing:0, rowSpacing:20,
+			suitGap:24, handGap:24, columnGap:12, padding:12};
+		for (key in arguments.options) {
+			if (!structKeyExists(settings, key))
+				throw(type="bridge.svg", message="Unknown SVG option: " & key);
+			settings[key] = arguments.options[key];
+		}
+		if (!isBoolean(settings.rose) || !isBoolean(settings.monochrome)
+			|| !isSimpleValue(settings.title) || !isSimpleValue(settings.deal)
+			|| !reFindNoCase("^[nesw]+$", settings.deal))
+			throw(type="bridge.svg", message="Invalid SVG options");
+
+		// Plain finite numbers only: these values are serialized into SVG attributes.
+		for (key in ["fontSize","letterSpacing","wordSpacing","rowSpacing","suitGap","handGap","columnGap","padding"]) {
+			if (!isSimpleValue(settings[key]) || !reFind("^-?[0-9]+(\.[0-9]+)?$", toString(settings[key])))
+				throw(type="bridge.svg", message="Invalid numeric SVG option: " & key);
+			settings[key] = val(settings[key]);
+			if (abs(settings[key]) > 1000 || (settings[key] < 0 && !listFind("letterSpacing,wordSpacing", key))
+				|| (listFind("fontSize,rowSpacing", key) && settings[key] == 0))
+				throw(type="bridge.svg", message="SVG spacing option out of range: " & key);
+		}
+		// Avoid reversed text advances when tightening the monospace card text.
+		if (settings.letterSpacing <= -settings.fontSize * 0.6
+			|| settings.wordSpacing + settings.letterSpacing <= -settings.fontSize * 0.6)
+			throw(type="bridge.svg", message="SVG card spacing must leave positive character advances");
+
+		source = trim(arguments.text);
+		if (left(source, 1) == "[") {
+			// Read only the Deal tag: auction markup is irrelevant to this export.
+			tags = parseTaggedText(source);
+			source = "";
+			for (tag in tags) {
+				if (tag.tag == "deal") {
+					source = trim(tag.attributes);
+					break;
+				}
+			}
+			if (!len(source)) throw(type="bridge.svg", message="PBN has no Deal tag");
+		}
+		isDeal = reFindNoCase("^[nesw]:", source) > 0;
+		hands = {};
+		if (isDeal) {
+			seat = lcase(left(source, 1));
+			source = trim(mid(source, 3, len(source)));
+			items = listToArray(reReplace(source, "\s+", " ", "all"), " ");
+			if (arrayLen(items) != 4)
+				throw(type="bridge.svg", message="An SVG deal requires four hands (use - for an unknown hand)");
+			for (item in items) {
+				if (item != "-") hands[seat] = svgParseHand(item);
+				seat = getNextPosition(seat);
+			}
+		} else {
+			hands.n = svgParseHand(source);
+		}
+
+		// Reserve a conservative monospace advance; negative spacing can tighten text
+		// without shrinking the canvas below its unspaced estimate.
+		handWidths = {n:0, e:0, s:0, w:0};
+		for (seat in hands) {
+			if (isDeal && !findNoCase(seat, settings.deal)) continue;
+			for (suit in ["s","h","d","c"]) {
+				cards = suitFormat(hands[seat][suit]);
+				spaces = len(cards) - len(replace(cards, " ", "", "all"));
+				cardWidth = len(cards) * (settings.fontSize * 9 / 14 + max(0, settings.letterSpacing))
+					+ spaces * max(0, settings.wordSpacing);
+				handWidths[seat] = max(handWidths[seat], settings.suitGap + cardWidth);
+			}
+		}
+		if (isDeal) {
+			// Equal E/W columns flank the rose. Anchor N/S to the rose, never to
+			// a content-sized middle column. Symmetric bounds keep centered deals aligned.
+			ewWidth = max(handWidths.e, handWidths.w);
+			nsWidth = max(handWidths.n, handWidths.s);
+			roseWidth = 56;
+			wingExtent = roseWidth / 2 + settings.handGap + settings.columnGap + ewWidth;
+			nsLeftExtent = roseWidth / 2 + settings.handGap;
+			halfWidth = max(wingExtent, max(nsLeftExtent, nsWidth - nsLeftExtent));
+			width = 2 * (settings.padding + halfWidth);
+			roseX = width / 2 - roseWidth / 2;
+			centerX = roseX - settings.handGap;
+			westX = centerX - settings.columnGap - ewWidth;
+			eastX = roseX + roseWidth + settings.handGap + settings.columnGap;
+		} else {
+			width = 2 * settings.padding + max(56, handWidths.n);
+			centerX = settings.padding;
+			westX = centerX;
+			eastX = centerX;
+		}
+		topBaseline = settings.padding + settings.fontSize;
+		// handGap is the baseline gap after the final suit row. Also reserve space
+		// for large fonts and the fixed-size compass when suit rows are compact.
+		handExtent = 3 * settings.rowSpacing + settings.fontSize * 1.3;
+		bandHeight = isDeal && settings.rose ? max(handExtent, 56) : handExtent;
+		bandStep = bandHeight + max(0, settings.handGap - settings.fontSize * 1.3);
+		height = 2 * settings.padding + (isDeal ? 2 * bandStep + bandHeight : handExtent);
+		css = fileRead(getDirectoryFromPath(getCurrentTemplatePath()) & "assets/css/bridge_svg.css", "utf-8");
+		classes = "bridge-svg" & (settings.monochrome ? " bridge-svg-mono" : "");
+		parts = ['<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="' & classes
+			& '" font-size="' & settings.fontSize & '" letter-spacing="' & settings.letterSpacing
+			& '" word-spacing="' & settings.wordSpacing & '" width="' & width & '" height="' & height & '" viewBox="0 0 ' & width & ' ' & height & '" role="img">',
+			'<title>' & xmlFormat(settings.title) & '</title>', '<style type="text/css">' & css & '</style>'];
+		positions = {n:[centerX, topBaseline], w:[westX, topBaseline + bandStep],
+			e:[eastX, topBaseline + bandStep], s:[centerX, topBaseline + 2 * bandStep]};
+		for (seat in ["n","w","e","s"]) {
+			if (!structKeyExists(hands, seat) || (isDeal && !findNoCase(seat, settings.deal))) continue;
+			x = isDeal ? positions[seat][1] : settings.padding;
+			y = isDeal ? positions[seat][2] : topBaseline;
+			parts.append('<g class="bridge-svg-hand bridge-svg-' & seat & '">');
+			for (suit in ["s","h","d","c"]) {
+				parts.append('<text class="bridge-svg-holding" x="' & x & '" y="' & y & '"><tspan class="bridge-svg-suit bridge-svg-'
+					& suit & '">' & getSymbol(suit) & '</tspan><tspan x="' & (x + settings.suitGap) & '">'
+					& xmlFormat(suitFormat(hands[seat][suit])) & '</tspan></text>');
+				y += settings.rowSpacing;
+			}
+			parts.append('</g>');
+		}
+		if (isDeal && settings.rose) {
+			cx = width / 2;
+			cy = settings.padding + bandStep + bandHeight / 2;
+			parts.append('<rect class="bridge-svg-table" x="' & (cx - 28) & '" y="' & (cy - 28) & '" width="56" height="56"/>');
+			labels = {n:[cx,cy-14], s:[cx,cy+22], w:[cx-18,cy+4], e:[cx+18,cy+4]};
+			for (seat in ["n","s","w","e"])
+				parts.append('<text class="bridge-svg-label" x="' & labels[seat][1] & '" y="' & labels[seat][2] & '">' & ucase(seat) & '</text>');
+		}
+		parts.append('</svg>');
+		return arrayToList(parts, chr(10));
+	}
+
+	/** Normalize empty suits before reusing the existing hand parser. */
+	private struct function svgParseHand(required string text) localmode=true {
+		source = trim(tidyHand(arguments.text));
+		if (!reFindNoCase("^[AKQJT2-9X-]*\.[AKQJT2-9X-]*\.[AKQJT2-9X-]*\.[AKQJT2-9X-]*$", source))
+			throw(type="bridge.svg", message="SVG hands must contain four dot-separated suits");
+		suits = listToArray(source, ".", true);
+		for (i=1; i <= 4; i++) {
+			if (!len(suits[i])) suits[i] = "-";
+			if (len(suits[i]) > 13 || (find("-", suits[i]) && suits[i] != "-"))
+				throw(type="bridge.svg", message="Invalid SVG holding");
+		}
+		return parseHand(arrayToList(suits, "."));
+	}
+
+	/**
 	 * Get string for css class of bridge element from specified attributes
 	 */
 	private function getClasses(required struct styles) localmode="true" {
