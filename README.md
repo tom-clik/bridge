@@ -3,3 +3,43 @@
 Tom's Bridge Notes and Code Libraries
 
 
+
+## Handviewer / LIN import and PBN export
+
+All conversion lives in `bridge_parser.cfc`; the former `PBNParser.cfc` has been
+removed. The pages in `testing` are adapters, not separate parsers.
+
+```cfml
+parser = new bridge.bridge_parser(); // jsoupObj is needed only for HTML rendering
+hand = parser.parseHandviewer(handviewerURL);
+pbn = parser.exportPBN(hand);
+
+hand = parser.parseLIN(linText);
+hand = parser.parsePBN(pbnText);
+```
+
+`parseHandviewer(input, resolveURLs=true)` accepts a Handviewer URL or query
+(including `lin=...`), raw LIN, or a URL returning LIN. Short links and relative
+redirects are resolved with a bounded redirect count and HTTP timeout. Set
+`resolveURLs=false` for offline parsing or untrusted URLs. Query values are
+URL-decoded once; raw LIN is already decoded text.
+
+The shared hand structure contains `deal[position][suit]`, `auction` entries
+with `bid` and note markers, `notes` entries with `marker` and `note`, metadata
+such as `dealer` and `vulnerable`, and a `play_ordered` array. LIN player/deal
+order is South, West, North, East. One omitted hand is inferred only when the
+other three account for 39 distinct cards; incomplete deals are never filled
+randomly. Import one board at a time. Contract and declarer are derived only
+from a completed auction; pass-outs have `contract="Pass"` and no declarer.
+
+`exportPBN(hand)` emits metadata, the deal in North/East/South/West order,
+auction calls and explanations. Played cards are copied in source order to
+an **unofficial `[play_ordered]` section**, with no conversion into standard
+PBN player columns. `parsePBN` recognizes this extension. For an existing
+standard `[Play "..."]` section it copies the tokens as written; it does not
+reconstruct chronological play from those columns. Play notes are kept
+separately in `play_notes` and exported after the play section.
+
+Run `testing/functions/testHandviewerImport.cfm` on the local CFML server for
+import/export regressions, including local HTTP fixtures. The interactive
+`testing/handviewer_convert.cfm?data=...` adapter accepts the same input formats.

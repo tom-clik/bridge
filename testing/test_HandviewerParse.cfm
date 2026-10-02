@@ -1,14 +1,6 @@
 <cfscript>
-
-PBNParser = new bridge.PBNparser();
-
-text = urlDecode( FileRead( expandPath("../handviewer_samples/test1.txt") ) );
-
-vals = PBNParser.parse( text );
-
-writeDump(vals);
-
-writeoutput("<pre>" & PBNParser.pbn(vals) & "</pre>");
-
-
+parser = new bridge.bridge_parser();
+text = fileRead(expandPath("../handviewer_samples/test1.txt"));
+hand = parser.parseHandviewer(input=text, resolveURLs=false);
+writeOutput("<pre>" & encodeForHTML(parser.exportPBN(hand)) & "</pre>");
 </cfscript>
