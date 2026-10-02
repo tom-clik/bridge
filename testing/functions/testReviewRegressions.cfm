@@ -13,7 +13,7 @@ function renderBoth(required string source) {
     var section = {node:variables.soup.parse(arguments.source)};
     variables.coldlightPlugin.process(section=section,document={basepath:""});
     return {
-        preview:variables.soup.parse(variables.htmlPlugin.process(arguments.source)),
+        preview:variables.soup.parse(variables.htmlPlugin.process(doc={html:arguments.source})),
         coldlight:variables.soup.parse(section.node.body().html())
     };
 }
@@ -37,7 +37,7 @@ for (atts in ['inline="no"', 'vertical inline="yes"']) {
         check(outputs[adapter].select("div.bridge").size() == 1, adapter & ": block hand keeps div wrapper");
 }
 // Each supported legacy separator must produce the same four suits as dotted notation.
-expected = soup.parse(htmlPlugin.process('<bridge type="hand">AKQ.432.AJ98.765</bridge>')).select(".bridgehand").html();
+expected = soup.parse(htmlPlugin.process(doc={html:'<bridge type="hand">AKQ.432.AJ98.765</bridge>'})).select(".bridgehand").html();
 for (separator in [chr(10), chr(13), chr(13) & chr(10), ",", " "]) {
     outputs = renderBoth('<bridge type="hand">' & arrayToList(["AKQ","432","AJ98","765"], separator) & '</bridge>');
     for (adapter in outputs)

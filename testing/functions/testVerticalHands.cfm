@@ -22,7 +22,7 @@ for (item in cases) {
     source = '<bridge ' & item.attributes & '>AKQ.432.AJ98.765</bridge>';
     section = {node:soup.parse(source)};
     coldlightPlugin.process(section=section,document={basepath:""});
-    outputs = {preview:soup.parse(htmlPlugin.process(source)), coldlight:section.node};
+    outputs = {preview:soup.parse(htmlPlugin.process(doc={html:source})), coldlight:section.node};
     for (adapter in outputs) {
         node = outputs[adapter].select(".bridge").first();
         checks++;

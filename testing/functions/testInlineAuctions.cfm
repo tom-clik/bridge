@@ -23,7 +23,7 @@ for (mode in ["coldlight", "html"]) {
         coldPlugin.process(section=section, document={"basepath":""});
         node = section.node;
     } else {
-        output = htmlPlugin.process(fixture);
+        output = htmlPlugin.process(doc={html:fixture});
         check(!findNoCase("<html", output), "HTML fragments remain fragments");
         node = soup.Jsoup.parse(output);
     }
@@ -39,7 +39,7 @@ for (mode in ["coldlight", "html"]) {
     check(node.select(".suit .suit").isEmpty(), mode & ": existing suit spans are not nested");
 }
 
-full = htmlPlugin.process('<!DOCTYPE html><html><head><title>Test</title></head><body><code>1♥</code></body></html>');
+full = htmlPlugin.process(doc={html:'<!DOCTYPE html><html><head><title>Test</title></head><body><code>1♥</code></body></html>'});
 check(findNoCase("<!doctype html>", full) > 0 && findNoCase("<head>", full) > 0, "Full HTML documents retain their document structure");
 
 // End-to-end Markdown conversion, independent of any local publication files.
