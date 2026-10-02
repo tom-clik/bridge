@@ -60,8 +60,9 @@ with magnitude at most 1000. Invalid settings raise `bridge.svg` errors.
 
 The rose stays centered in the canvas. North and South share a starting x-coordinate
 exactly `handGap` left of the rose's left edge. East and West reserve equal widths,
-using the longest displayed suit in either of those hands. West's column ends
-`handGap + columnGap` before the rose's left edge; East starts the same distance
+using the longest displayed suit in either of those hands. The West hand is
+right-aligned as a block within its column, leaving unused space on the left. Its
+longest suit ends `handGap + columnGap` before the rose's left edge; East starts the same distance
 after its right edge. Longer outer suits expand both sides equally, leaving the
 N/S-to-rose offset unchanged. Long N/S suits can add equal outer margins to prevent
 clipping. Thus diagrams centered on a page keep their roses and N/S starts aligned

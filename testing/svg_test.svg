@@ -15,10 +15,10 @@
 <text class="bridge-svg-holding" x="138" y="86"><tspan class="bridge-svg-suit bridge-svg-c" font-family="DejaVu Sans, sans-serif">♣</tspan><tspan x="162">Q 9 7 4 2</tspan></text>
 </g>
 <g class="bridge-svg-hand bridge-svg-w">
-<text class="bridge-svg-holding" x="12" y="110"><tspan class="bridge-svg-suit bridge-svg-s" font-family="DejaVu Sans, sans-serif">♠</tspan><tspan x="36">K Q 9 8 3</tspan></text>
-<text class="bridge-svg-holding" x="12" y="130"><tspan class="bridge-svg-suit bridge-svg-h" font-family="DejaVu Sans, sans-serif">♥</tspan><tspan x="36">4 3 2</tspan></text>
-<text class="bridge-svg-holding" x="12" y="150"><tspan class="bridge-svg-suit bridge-svg-d" font-family="DejaVu Sans, sans-serif">♦</tspan><tspan x="36">Q 7 6</tspan></text>
-<text class="bridge-svg-holding" x="12" y="170"><tspan class="bridge-svg-suit bridge-svg-c" font-family="DejaVu Sans, sans-serif">♣</tspan><tspan x="36">J 6</tspan></text>
+<text class="bridge-svg-holding" x="21" y="110"><tspan class="bridge-svg-suit bridge-svg-s" font-family="DejaVu Sans, sans-serif">♠</tspan><tspan x="45">K Q 9 8 3</tspan></text>
+<text class="bridge-svg-holding" x="21" y="130"><tspan class="bridge-svg-suit bridge-svg-h" font-family="DejaVu Sans, sans-serif">♥</tspan><tspan x="45">4 3 2</tspan></text>
+<text class="bridge-svg-holding" x="21" y="150"><tspan class="bridge-svg-suit bridge-svg-d" font-family="DejaVu Sans, sans-serif">♦</tspan><tspan x="45">Q 7 6</tspan></text>
+<text class="bridge-svg-holding" x="21" y="170"><tspan class="bridge-svg-suit bridge-svg-c" font-family="DejaVu Sans, sans-serif">♣</tspan><tspan x="45">J 6</tspan></text>
 </g>
 <g class="bridge-svg-hand bridge-svg-e">
 <text class="bridge-svg-holding" x="254" y="110"><tspan class="bridge-svg-suit bridge-svg-s" font-family="DejaVu Sans, sans-serif">♠</tspan><tspan x="278">7 6</tspan></text>

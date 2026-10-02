@@ -241,7 +241,9 @@ component {
 			width = 2 * (settings.padding + halfWidth);
 			roseX = width / 2 - roseWidth / 2;
 			centerX = roseX - settings.handGap;
-			westX = centerX - settings.columnGap - ewWidth;
+			// Right-align the West hand as a block within the equal-width wing.
+			// A longer East hand leaves spare space on West's outer (left) side.
+			westX = centerX - settings.columnGap - handWidths.w;
 			eastX = roseX + roseWidth + settings.handGap + settings.columnGap;
 		} else {
 			width = 2 * settings.padding + max(56, handWidths.n);

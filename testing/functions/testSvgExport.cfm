@@ -97,14 +97,29 @@ for (source in [shortDeal, longEast, longWest, longNorth]) {
 }
 eastLayout = layout(longEast);
 westLayout = layout(longWest);
-check(eastLayout.width == westLayout.width && eastLayout.w == westLayout.w && eastLayout.e == westLayout.e,
-    "Swapping long East/West holdings preserves both column widths and positions");
+check(eastLayout.width == westLayout.width && eastLayout.e == westLayout.e,
+    "Swapping long East/West holdings preserves canvas width and East position");
 // The long suit has 26 displayed characters, including the expanded ten and spaces.
 expectedWingWidth = 24 + 26 * 9;
-check(eastLayout.rose - (eastLayout.w + expectedWingWidth) == 36,
-    "West column right edge leaves handGap plus columnGap before rose");
-check(eastLayout.w + eastLayout.e + expectedWingWidth == eastLayout.width,
-    "Equal-width E/W columns have symmetric outer margins");
+shortWestWidth = 24 + 9;
+check(eastLayout.rose - (eastLayout.w + shortWestWidth) == 36,
+    "Short West hand stays beside rose when East is long");
+check(westLayout.rose - (westLayout.w + expectedWingWidth) == 36,
+    "Long West hand retains the same clearance from rose");
+check(eastLayout.w - westLayout.w == expectedWingWidth - shortWestWidth,
+    "Unused West column space is placed on the left");
+check(eastLayout.w + shortWestWidth - eastLayout.width / 2 == baseLayout.w + shortWestWidth - baseLayout.width / 2,
+    "West right edge aligns across centered deals when only East grows");
+check(westLayout.w + eastLayout.e + expectedWingWidth == eastLayout.width,
+    "Reserved E/W columns retain symmetric outer margins");
+westRows = xmlSearch(xmlParse(parser.exportSvg(longEast)), "//*[local-name()='g' and @class='bridge-svg-hand bridge-svg-w']/*");
+for (row in westRows)
+    check(row.xmlAttributes.x == eastLayout.w, "West suits remain left-aligned within the right-aligned hand");
+customShortWest = layout(longEast, {handGap:40, columnGap:20, padding:16});
+check(customShortWest.rose - (customShortWest.w + shortWestWidth) == 60,
+    "Short West respects custom clearance from rose");
+noRoseShortWest = layout(longEast, {rose:false});
+check(noRoseShortWest.w == eastLayout.w, "Short West alignment retained with rose hidden");
 check(layout(longNorth).n + expectedWingWidth <= layout(longNorth).width - 12, "Long N/S fits within padded canvas");
 customLayout = layout(longWest, {handGap:40, columnGap:20, padding:16});
 check(customLayout.rose - customLayout.n == 40
