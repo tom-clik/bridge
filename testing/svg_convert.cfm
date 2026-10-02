@@ -1,10 +1,7 @@
 <!---
-Convert SVG using Batik or ImageMagick
-
-Both very unsatisfactoy. Can't use <style> attribute and our attempts
-at inline the styling didn't work very well
-
-Need a different solution for automated digram production
+Optional ImageMagick conversion example. Requires `magick` on PATH and an SVG
+renderer with CSS support (such as librsvg). See docs/svg-export.md for CairoSVG.
+The generated SVG embeds its stylesheet; no HTML page or external CSS is needed.
 --->
 
 <cfscript>
@@ -14,14 +11,6 @@ pngPath = expandPath("_output/output.png");
 
 svgToPng(svgPath,pngPath);
 
-/*
-svgTranscoder = createObject("java", "org.apache.batik.transcoder.image.PNGTranscoder");
-input = createObject("java", "org.apache.batik.transcoder.TranscoderInput").init(createObject("java", "java.io.FileInputStream").init(svgPath));
-output = createObject("java", "org.apache.batik.transcoder.TranscoderOutput").init(createObject("java", "java.io.FileOutputStream").init(pngPath));
-
-svgTranscoder.transcode(input, output);
-*/
-
 // Convert an SVG file to PNG using ImageMagick
 boolean function svgToPng(required string svgPath, required string pngPath, numeric density=300) localmode=true {
     if ( !fileExists(svgPath) ) {
@@ -30,7 +19,7 @@ boolean function svgToPng(required string svgPath, required string pngPath, nume
 
     // Build command array
     cmd = [
-        "C:/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick",
+        "magick",
         "-background", "transparent",
         "-density", density,
         svgPath,
@@ -51,10 +40,11 @@ boolean function svgToPng(required string svgPath, required string pngPath, nume
     reader.close();
 
     // Wait for completion
-    process.waitFor();
-
-    // Return true if PNG created
-    return fileExists(pngPath);
+    exitCode = process.waitFor();
+    if (exitCode != 0 || !fileExists(pngPath)) {
+        throw(type="bridge.svgConversion", message="ImageMagick SVG conversion failed", detail=line);
+    }
+    return true;
 }
 
 </cfscript>

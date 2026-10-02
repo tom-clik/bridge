@@ -1,48 +1,41 @@
-<svg viewBox="0 0 240 220" xmlns="http://www.w3.org/2000/svg">
- 
-  <style>
-    <!-- text { font: 13px monospace; word-spacing:-6px} -->
-    
-    /* Note that the color of the text is set with the    *
-     * fill property, the color property is for HTML only */
-    .black tspan:first-of-type {fill: black; }
-    .red tspan:first-of-type  {fill: red; }
-     .player-label { font: bold 12px sans-serif; line-height:0 }
-    
-    /* Styling for rectangle representing players' table */
-    .table { fill: lightgray; stroke: black; stroke-width: 2; }
-  </style>
-   <g id="handdiagram">
-  <!-- Rectangle for the bridge players' table -->
-  <rect x="90" y="86" width="56" height="56" class="table" />
-
-  <!-- Player labels -->
-  <text x="114" y="100" class="player-label">N</text> <!-- North -->
-  <text x="114" y="136" class="player-label">S</text> <!-- South -->
-  <text x="134" y="118" class="player-label">E</text> <!-- East -->
-  <text x="94" y="118" class="player-label">W</text> <!-- West -->
-
-
-  <text x="90" y="155" class="black"><tspan>♠</tspan><tspan dx="10">J T 5</tspan></text>
-  <text x="90" y="170" class="red"><tspan>♥</tspan><tspan dx="10">A K Q</tspan></text>
-  <text x="90" y="185" class="red"><tspan>♦</tspan><tspan dx="10">A J 4</tspan></text>
-  <text x="90" y="200" class="black"><tspan>♣</tspan><tspan dx="10">K T 9 8 7 4 2</tspan></text>
-
-  <text x="0" y="95" class="black"><tspan>♠</tspan><tspan dx="10">K Q 9 8 3</tspan></text>
-  <text x="0" y="110" class="red"><tspan>♥</tspan><tspan dx="10">4 3 2</tspan></text>
-  <text x="0" y="125" class="red"><tspan>♦</tspan><tspan dx="10">Q 7 6</tspan></text>
-  <text x="0" y="140" class="black"><tspan>♣</tspan><tspan dx="10">K 6</tspan></text>
-
-  <text x="90" y="35" class="black"><tspan>♠</tspan><tspan dx="10">A 4 2</tspan></text>
-  <text x="90" y="50" class="red"><tspan>♥</tspan><tspan dx="10">9 6 5</tspan></text>
-  <text x="90" y="65" class="red"><tspan>♦</tspan><tspan dx="10">K 9</tspan></text>
-  <text x="90" y="80" class="black"><tspan>♣</tspan><tspan dx="10">Q 9 7 4 2</tspan></text>
-
-
-  <text x="180" y="95" class="black"><tspan>♠</tspan><tspan dx="10">7 6</tspan></text>
-  <text x="180" y="110" class="red"><tspan>♥</tspan><tspan dx="10">J T 8 7</tspan></text>
-  <text x="180" y="125" class="red"><tspan>♦</tspan><tspan dx="10">T 8 5 3 2</tspan></text>
-  <text x="180" y="140" class="black"><tspan>♣</tspan><tspan dx="10">A K</tspan></text>
-
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="bridge-svg" width="390" height="264" viewBox="0 0 390 264" role="img">
+<title>Bridge diagram</title>
+<style type="text/css">/* Embedded in each export so files and image elements need no host CSS. */
+.bridge-svg .bridge-svg-holding { font-family: monospace; font-size: 14px; fill: #111; }
+.bridge-svg .bridge-svg-suit { font-family: "DejaVu Sans", sans-serif; }
+.bridge-svg .bridge-svg-h, .bridge-svg .bridge-svg-d { fill: #c00; }
+.bridge-svg .bridge-svg-s, .bridge-svg .bridge-svg-c { fill: #111; }
+.bridge-svg .bridge-svg-table { fill: #eee; stroke: #333; stroke-width: 1; }
+.bridge-svg .bridge-svg-label { font-family: sans-serif; font-size: 12px; font-weight: bold; text-anchor: middle; fill: #111; }
+.bridge-svg-mono .bridge-svg-suit { fill: #111; }
+</style>
+<g class="bridge-svg-hand bridge-svg-n">
+<text class="bridge-svg-holding" x="138" y="24"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="162">A 4 2</tspan></text>
+<text class="bridge-svg-holding" x="138" y="44"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="162">9 6 5</tspan></text>
+<text class="bridge-svg-holding" x="138" y="64"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="162">K 9</tspan></text>
+<text class="bridge-svg-holding" x="138" y="84"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="162">Q 9 7 4 2</tspan></text>
 </g>
+<g class="bridge-svg-hand bridge-svg-w">
+<text class="bridge-svg-holding" x="12" y="108"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="36">K Q 9 8 3</tspan></text>
+<text class="bridge-svg-holding" x="12" y="128"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="36">4 3 2</tspan></text>
+<text class="bridge-svg-holding" x="12" y="148"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="36">Q 7 6</tspan></text>
+<text class="bridge-svg-holding" x="12" y="168"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="36">J 6</tspan></text>
+</g>
+<g class="bridge-svg-hand bridge-svg-e">
+<text class="bridge-svg-holding" x="264" y="108"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="288">7 6</tspan></text>
+<text class="bridge-svg-holding" x="264" y="128"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="288">J 10 8 7</tspan></text>
+<text class="bridge-svg-holding" x="264" y="148"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="288">10 8 5 3 2</tspan></text>
+<text class="bridge-svg-holding" x="264" y="168"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="288">A K</tspan></text>
+</g>
+<g class="bridge-svg-hand bridge-svg-s">
+<text class="bridge-svg-holding" x="138" y="192"><tspan class="bridge-svg-suit bridge-svg-s">♠</tspan><tspan x="162">J 10 5</tspan></text>
+<text class="bridge-svg-holding" x="138" y="212"><tspan class="bridge-svg-suit bridge-svg-h">♥</tspan><tspan x="162">A K Q</tspan></text>
+<text class="bridge-svg-holding" x="138" y="232"><tspan class="bridge-svg-suit bridge-svg-d">♦</tspan><tspan x="162">A J 4</tspan></text>
+<text class="bridge-svg-holding" x="138" y="252"><tspan class="bridge-svg-suit bridge-svg-c">♣</tspan><tspan x="162">10 8 5 3</tspan></text>
+</g>
+<rect class="bridge-svg-table" x="167" y="106" width="56" height="56"/>
+<text class="bridge-svg-label" x="195" y="120">N</text>
+<text class="bridge-svg-label" x="195" y="156">S</text>
+<text class="bridge-svg-label" x="177" y="138">W</text>
+<text class="bridge-svg-label" x="213" y="138">E</text>
 </svg>

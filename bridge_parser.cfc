@@ -146,6 +146,106 @@ component {
 	}
 
 	/**
+	 * Export a standalone SVG hand or deal (PBN or direction-prefixed deal text).
+	 * Options: deal (visible seats, default NESW), rose (true), monochrome (false),
+	 * title (accessible description). Returns XML; callers choose where to save it.
+	 * Auctions and PBN metadata are not rendered by this diagram exporter.
+	 */
+	public string function exportSvg(required string text, struct options={}) localmode=true {
+		settings = {deal:"nesw", rose:true, monochrome:false, title:"Bridge diagram"};
+		for (key in arguments.options) {
+			if (!structKeyExists(settings, key))
+				throw(type="bridge.svg", message="Unknown SVG option: " & key);
+			settings[key] = arguments.options[key];
+		}
+		if (!isBoolean(settings.rose) || !isBoolean(settings.monochrome)
+			|| !isSimpleValue(settings.title) || !isSimpleValue(settings.deal)
+			|| !reFindNoCase("^[nesw]+$", settings.deal))
+			throw(type="bridge.svg", message="Invalid SVG options");
+
+		source = trim(arguments.text);
+		if (left(source, 1) == "[") {
+			// Read only the Deal tag: auction markup is irrelevant to this export.
+			tags = parseTaggedText(source);
+			source = "";
+			for (tag in tags) {
+				if (tag.tag == "deal") {
+					source = trim(tag.attributes);
+					break;
+				}
+			}
+			if (!len(source)) throw(type="bridge.svg", message="PBN has no Deal tag");
+		}
+		isDeal = reFindNoCase("^[nesw]:", source) > 0;
+		hands = {};
+		if (isDeal) {
+			seat = lcase(left(source, 1));
+			source = trim(mid(source, 3, len(source)));
+			items = listToArray(reReplace(source, "\s+", " ", "all"), " ");
+			if (arrayLen(items) != 4)
+				throw(type="bridge.svg", message="An SVG deal requires four hands (use - for an unknown hand)");
+			for (item in items) {
+				if (item != "-") hands[seat] = svgParseHand(item);
+				seat = getNextPosition(seat);
+			}
+		} else {
+			hands.n = svgParseHand(source);
+		}
+
+		// Size columns from the displayed holdings, including expanded tens.
+		columnWidth = 80;
+		for (seat in hands) {
+			if (isDeal && !findNoCase(seat, settings.deal)) continue;
+			for (suit in ["s","h","d","c"])
+				columnWidth = max(columnWidth, 24 + len(suitFormat(hands[seat][suit])) * 9);
+		}
+		width = isDeal ? 3 * columnWidth + 48 : columnWidth + 24;
+		height = isDeal ? 264 : 96;
+		css = fileRead(getDirectoryFromPath(getCurrentTemplatePath()) & "assets/css/bridge_svg.css", "utf-8");
+		classes = "bridge-svg" & (settings.monochrome ? " bridge-svg-mono" : "");
+		parts = ['<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="' & classes
+			& '" width="' & width & '" height="' & height & '" viewBox="0 0 ' & width & ' ' & height & '" role="img">',
+			'<title>' & xmlFormat(settings.title) & '</title>', '<style type="text/css">' & css & '</style>'];
+		positions = {n:[24 + columnWidth, 24], w:[12, 108], e:[36 + 2 * columnWidth, 108], s:[24 + columnWidth, 192]};
+		for (seat in ["n","w","e","s"]) {
+			if (!structKeyExists(hands, seat) || (isDeal && !findNoCase(seat, settings.deal))) continue;
+			x = isDeal ? positions[seat][1] : 12;
+			y = isDeal ? positions[seat][2] : 24;
+			parts.append('<g class="bridge-svg-hand bridge-svg-' & seat & '">');
+			for (suit in ["s","h","d","c"]) {
+				parts.append('<text class="bridge-svg-holding" x="' & x & '" y="' & y & '"><tspan class="bridge-svg-suit bridge-svg-'
+					& suit & '">' & getSymbol(suit) & '</tspan><tspan x="' & (x + 24) & '">'
+					& xmlFormat(suitFormat(hands[seat][suit])) & '</tspan></text>');
+				y += 20;
+			}
+			parts.append('</g>');
+		}
+		if (isDeal && settings.rose) {
+			cx = width / 2;
+			parts.append('<rect class="bridge-svg-table" x="' & (cx - 28) & '" y="106" width="56" height="56"/>');
+			labels = {n:[cx,120], s:[cx,156], w:[cx-18,138], e:[cx+18,138]};
+			for (seat in ["n","s","w","e"])
+				parts.append('<text class="bridge-svg-label" x="' & labels[seat][1] & '" y="' & labels[seat][2] & '">' & ucase(seat) & '</text>');
+		}
+		parts.append('</svg>');
+		return arrayToList(parts, chr(10));
+	}
+
+	/** Normalize empty suits before reusing the existing hand parser. */
+	private struct function svgParseHand(required string text) localmode=true {
+		source = trim(tidyHand(arguments.text));
+		if (!reFindNoCase("^[AKQJT2-9X-]*\.[AKQJT2-9X-]*\.[AKQJT2-9X-]*\.[AKQJT2-9X-]*$", source))
+			throw(type="bridge.svg", message="SVG hands must contain four dot-separated suits");
+		suits = listToArray(source, ".", true);
+		for (i=1; i <= 4; i++) {
+			if (!len(suits[i])) suits[i] = "-";
+			if (len(suits[i]) > 13 || (find("-", suits[i]) && suits[i] != "-"))
+				throw(type="bridge.svg", message="Invalid SVG holding");
+		}
+		return parseHand(arrayToList(suits, "."));
+	}
+
+	/**
 	 * Get string for css class of bridge element from specified attributes
 	 */
 	private function getClasses(required struct styles) localmode="true" {

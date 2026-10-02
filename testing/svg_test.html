@@ -1,72 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>SVG Test</title>
-	<style>
-		body {
-			padding:40px;
-		}
-		body > div {
-			margin: 0 auto;
-			width:260px;
-
-		}
-	#img text { font: 12px "Consolas"; word-spacing:-5px}
-	</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bridge SVG examples</title>
+  <style>
+    body { margin: 2rem auto; padding: 0 1rem; max-width: 50rem; font-family: sans-serif; }
+    img { display: block; max-width: 100%; height: auto; margin: 1rem 0 2rem; }
+  </style>
 </head>
 <body>
-
-<div>
-	<svg id="img" viewBox="0 0 240 220" xmlns="http://www.w3.org/2000/svg">
- 
-  <style>
-    <!-- text { font: 13px monospace; word-spacing:-6px} -->
-    
-    /* Note that the color of the text is set with the    *
-     * fill property, the color property is for HTML only */
-    .black tspan:first-of-type {fill: black; }
-    .red tspan:first-of-type  {fill: red; }
-     .player-label { font: bold 12px sans-serif; line-height:0 }
-    
-    /* Styling for rectangle representing players' table */
-    .table { fill: lightgray; stroke: black; stroke-width: 2; }
-  </style>
-
-  <!-- Rectangle for the bridge players' table -->
-  <rect x="90" y="86" width="56" height="56" class="table" />
-
-  <!-- Player labels -->
-  <text x="114" y="100" class="player-label">N</text> <!-- North -->
-  <text x="114" y="136" class="player-label">S</text> <!-- South -->
-  <text x="134" y="118" class="player-label">E</text> <!-- East -->
-  <text x="94" y="118" class="player-label">W</text> <!-- West -->
-
-
-  <text x="90" y="155" class="black"><tspan>♠</tspan><tspan dx="10">J T 5</tspan></text>
-  <text x="90" y="170" class="red"><tspan>♥</tspan><tspan dx="10">A K Q</tspan></text>
-  <text x="90" y="185" class="red"><tspan>♦</tspan><tspan dx="10">A J 4</tspan></text>
-  <text x="90" y="200" class="black"><tspan>♣</tspan><tspan dx="10">K T 9 8 7 4 2</tspan></text>
-
-  <text x="0" y="95" class="black"><tspan>♠</tspan><tspan dx="10">K Q 9 8 3</tspan></text>
-  <text x="0" y="110" class="red"><tspan>♥</tspan><tspan dx="10">4 3 2</tspan></text>
-  <text x="0" y="125" class="red"><tspan>♦</tspan><tspan dx="10">Q 7 6</tspan></text>
-  <text x="0" y="140" class="black"><tspan>♣</tspan><tspan dx="10">K 6</tspan></text>
-
-  <text x="90" y="35" class="black"><tspan>♠</tspan><tspan dx="10">A 4 2</tspan></text>
-  <text x="90" y="50" class="red"><tspan>♥</tspan><tspan dx="10">9 6 5</tspan></text>
-  <text x="90" y="65" class="red"><tspan>♦</tspan><tspan dx="10">K 9</tspan></text>
-  <text x="90" y="80" class="black"><tspan>♣</tspan><tspan dx="10">Q 9 7 4 2</tspan></text>
-
-
-  <text x="180" y="95" class="black"><tspan>♠</tspan><tspan dx="10">7 6</tspan></text>
-  <text x="180" y="110" class="red"><tspan>♥</tspan><tspan dx="10">J T 8 7</tspan></text>
-  <text x="180" y="125" class="red"><tspan>♦</tspan><tspan dx="10">T 8 5 3 2</tspan></text>
-  <text x="180" y="140" class="black"><tspan>♣</tspan><tspan dx="10">A K</tspan></text>
-
-</svg>
-</div>
-
+  <h1>Self-contained bridge diagrams</h1>
+  <p>Both images include their own styles and can be rasterized without this page.</p>
+  <h2>Full deal</h2>
+  <img src="svg_test.svg" alt="Four bridge hands around a compass">
+  <h2>Single hand</h2>
+  <img src="svg_inline.svg" alt="A single bridge hand with a long spade holding">
+  <p><a href="svg_export.cfm">Live parser export</a></p>
 </body>
 </html>
