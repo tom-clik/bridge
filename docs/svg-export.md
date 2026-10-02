@@ -62,8 +62,9 @@ The rose stays centered in the canvas. North and South share a starting x-coordi
 exactly `handGap` left of the rose's left edge. East and West reserve equal widths,
 using the longest displayed suit in either of those hands. The West hand is
 right-aligned as a block within its column, leaving unused space on the left. Its
-longest suit ends `handGap + columnGap` before the rose's left edge; East starts the same distance
-after its right edge. Longer outer suits expand both sides equally, leaving the
+rightmost painted glyph ends `handGap + columnGap` before the outside edge of
+the rose stroke; East’s leftmost painted glyph starts the same distance after
+the opposite stroke edge. Glyph side bearings are included on both sides. Longer outer suits expand both sides equally, leaving the
 N/S-to-rose offset unchanged. Long N/S suits can add equal outer margins to prevent
 clipping. Thus diagrams centered on a page keep their roses and N/S starts aligned
 when using the same spacing options. Hiding the rose retains these horizontal anchors.
@@ -71,9 +72,9 @@ when using the same spacing options. Hiding the rose retains these horizontal an
 The canvas dimensions and vertical compass position are recalculated from these options.
 Very small `handGap` values are enlarged to reserve the estimated font height;
 compact rows also reserve space for the 56-unit compass when enabled. Deliberately
-small `rowSpacing` or `suitGap` values can overlap text. Width calculations use Java font metrics and include both positive and negative
-letter/word spacing. The West anchor follows the measured text advance; visible
-ink can end slightly before that advance because of the final glyph’s side bearing.
+small `rowSpacing` or `suitGap` values can overlap text. Width calculations use painted Java glyph bounds and include positive and
+negative letter/word spacing. Alignment accounts for glyph side bearings and the
+rose’s 1-unit stroke. Subpixel rasterization may differ by a fraction of a pixel.
 
 Text options are inherited SVG presentation attributes on the root, so different
 inline diagrams can use different values without their embedded CSS conflicting.
@@ -136,9 +137,12 @@ missing font falls back according to the SVG family list; generic `monospace` ma
 resolve to Courier New on Windows. The exporter measures the first available family using Java font metrics and
 can measure the bundled DejaVu defaults directly from their files when not installed.
 For other custom fonts, install or register them before exporting as well as when
-converting, so both steps use the same metrics. Font files supplied to the PNG
-converter are not embedded in SVGs: browsers need the selected fonts installed or
-provided separately by the host page. Exact glyph metrics can vary by renderer.
+converting, so both steps use the same metrics. The bundled DejaVu families are embedded as TrueType data URLs in SVGs when
+selected, ensuring Chrome uses the same font files as the measured layout even
+without system installations. This increases standalone SVG size. Other custom
+font files supplied only to the PNG converter are not embedded: browsers need
+those fonts installed or supplied by the host page. Use the same custom fonts
+in both environments for matching glyph metrics.
 
 ## PNG conversion
 

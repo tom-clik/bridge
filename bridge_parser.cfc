@@ -219,26 +219,31 @@ component {
 		// Measure the selected font instead of reserving an unspaced character grid.
 		// Both positive and negative spacing must affect the West-hand anchor.
 		cardFont = svgCardFont(settings.fontFamily, settings.fontSize);
+		symbolFont = svgCardFont(settings.suitFontFamily, settings.fontSize);
 		fontContext = createObject("java", "java.awt.font.FontRenderContext").init(
 			createObject("java", "java.awt.geom.AffineTransform").init(), true, true);
 		handWidths = {n:0, e:0, s:0, w:0};
+		handLeft = {n:0, e:0, s:0, w:0};
+		handRight = {n:0, e:0, s:0, w:0};
 		for (seat in hands) {
 			if (isDeal && !findNoCase(seat, settings.deal)) continue;
+			handLeft[seat] = 999999;
 			for (suit in ["s","h","d","c"]) {
-				cards = suitFormat(hands[seat][suit]);
-				spaces = len(cards) - len(replace(cards, " ", "", "all"));
-				cardWidth = cardFont.getStringBounds(cards, fontContext).getWidth()
-					+ (len(cards) - 1) * settings.letterSpacing + spaces * settings.wordSpacing;
-				handWidths[seat] = max(handWidths[seat], settings.suitGap + cardWidth);
+				cards = svgTextInkBounds(cardFont, fontContext, suitFormat(hands[seat][suit]), settings.letterSpacing, settings.wordSpacing);
+				symbol = svgTextInkBounds(symbolFont, fontContext, getSymbol(suit));
+				handLeft[seat] = min(handLeft[seat], min(symbol.left, settings.suitGap + cards.left));
+				handRight[seat] = max(handRight[seat], max(symbol.right, settings.suitGap + cards.right));
 			}
+			handWidths[seat] = handRight[seat] - handLeft[seat];
 		}
 		if (isDeal) {
 			// Equal E/W columns flank the rose. Anchor N/S to the rose, never to
 			// a content-sized middle column. Symmetric bounds keep centered deals aligned.
 			ewWidth = max(handWidths.e, handWidths.w);
-			nsWidth = max(handWidths.n, handWidths.s);
+			nsWidth = max(handRight.n, handRight.s);
+			roseStroke = 1;
 			roseWidth = 56;
-			wingExtent = roseWidth / 2 + settings.handGap + settings.columnGap + ewWidth;
+			wingExtent = (roseWidth + roseStroke) / 2 + settings.handGap + settings.columnGap + ewWidth;
 			nsLeftExtent = roseWidth / 2 + settings.handGap;
 			halfWidth = max(wingExtent, max(nsLeftExtent, nsWidth - nsLeftExtent));
 			width = 2 * (settings.padding + halfWidth);
@@ -246,10 +251,10 @@ component {
 			centerX = roseX - settings.handGap;
 			// Right-align the West hand as a block within the equal-width wing.
 			// A longer East hand leaves spare space on West's outer (left) side.
-			westX = centerX - settings.columnGap - handWidths.w;
-			eastX = roseX + roseWidth + settings.handGap + settings.columnGap;
+			westX = centerX - settings.columnGap - roseStroke / 2 - handRight.w;
+			eastX = roseX + roseWidth + roseStroke / 2 + settings.handGap + settings.columnGap - handLeft.e;
 		} else {
-			width = 2 * settings.padding + max(56, handWidths.n);
+			width = 2 * settings.padding + max(56, handRight.n);
 			centerX = settings.padding;
 			westX = centerX;
 			eastX = centerX;
@@ -262,6 +267,17 @@ component {
 		bandStep = bandHeight + max(0, settings.handGap - settings.fontSize * 1.3);
 		height = 2 * settings.padding + (isDeal ? 2 * bandStep + bandHeight : handExtent);
 		css = fileRead(getDirectoryFromPath(getCurrentTemplatePath()) & "assets/css/bridge_svg.css", "utf-8");
+		// Keep browser and server metrics consistent even when DejaVu is not installed.
+		// Names are scoped to the SVG's chosen family; no external font request is needed.
+		bundledFonts = {"DejaVu Sans Mono":"assets/fonts/dejavu-sans-mono/DejaVuSansMono.ttf",
+			"DejaVu Sans":"assets/fonts/dejavu-sans/DejaVuSans.ttf"};
+		for (fontName in bundledFonts) {
+			if (!findNoCase(fontName, settings.fontFamily & "," & settings.suitFontFamily & "," & settings.labelFontFamily)) continue;
+			fontPath = getDirectoryFromPath(getCurrentTemplatePath()) & bundledFonts[fontName];
+			if (fileExists(fontPath))
+				css &= chr(10) & '@font-face { font-family: "' & fontName & '"; src: url("data:font/ttf;base64,'
+					& toBase64(fileReadBinary(fontPath)) & '"); }';
+		}
 		classes = "bridge-svg" & (settings.monochrome ? " bridge-svg-mono" : "");
 		parts = ['<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="' & classes
 			& '" font-family="' & xmlFormat(settings.fontFamily) & '" font-size="' & settings.fontSize & '" letter-spacing="' & settings.letterSpacing
@@ -294,6 +310,24 @@ component {
 		return arrayToList(parts, chr(10));
 	}
 
+	/** Painted bounds, including glyph side bearings and SVG spacing adjustments. */
+	private struct function svgTextInkBounds(required font, required context, required string text,
+		numeric letterSpacing=0, numeric wordSpacing=0) localmode=true {
+		glyphs = arguments.font.createGlyphVector(arguments.context, javacast("string", arguments.text));
+		bounds = {left:999999, right:-999999};
+		extra = 0;
+		for (i=0; i < glyphs.getNumGlyphs(); i++) {
+			ink = glyphs.getGlyphVisualBounds(javacast("int", i)).getBounds2D();
+			if (!ink.isEmpty()) {
+				bounds.left = min(bounds.left, ink.getMinX() + extra);
+				bounds.right = max(bounds.right, ink.getMaxX() + extra);
+			}
+			extra += arguments.letterSpacing;
+			if (mid(arguments.text, i + 1, 1) == " ") extra += arguments.wordSpacing;
+		}
+		return bounds;
+	}
+
 	/** Resolve the first installed family in the same order as the SVG fallback list. */
 	private function svgCardFont(required string families, required numeric size) localmode=true {
 		available = createObject("java", "java.awt.GraphicsEnvironment").getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
@@ -311,14 +345,6 @@ component {
 				family = generic[candidate];
 				break;
 			}
-			for (installed in available) {
-				if (compareNoCase(candidate, installed) == 0) {
-					family = installed;
-					found = true;
-					break;
-				}
-			}
-			if (found) break;
 			// The repository's default fonts may be supplied to Batik without being
 			// installed system-wide. Measure those same files on the first export.
 			if (structKeyExists(bundled, candidate)) {
@@ -329,6 +355,15 @@ component {
 						.deriveFont(javacast("float", arguments.size));
 				}
 			}
+			for (installed in available) {
+				if (compareNoCase(candidate, installed) == 0) {
+					family = installed;
+					found = true;
+					break;
+				}
+			}
+			if (found) break;
+
 		}
 		return createObject("java", "java.awt.Font").init(family, javacast("int", 0), javacast("int", 1))
 			.deriveFont(javacast("float", arguments.size));

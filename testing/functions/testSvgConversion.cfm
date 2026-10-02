@@ -55,9 +55,21 @@ try {
                 rightmost = max(rightmost, px + 1);
         }
     }
-    visibleGap = roseX - rightmost / scale;
-    check(rightmost > 0 && abs(visibleGap - 24) <= 2,
+    visibleGap = roseX - 0.5 - rightmost / scale;
+    check(rightmost > 0 && abs(visibleGap - 24) <= 0.75,
         "Batik West-to-rose gap with negative word spacing: " & visibleGap);
+    leftmost = png.getWidth();
+    roseRight = roseX + val(rose.xmlAttributes.width) + 0.5;
+    for (py = int((baseline - 14) * scale); py < int((baseline + 3 * 16 + 3) * scale); py++) {
+        for (px = int((roseRight + 2) * scale); px < png.getWidth(); px++) {
+            if (bitAnd(png.getRGB(javacast("int", px), javacast("int", py)), -16777216) != 0)
+                leftmost = min(leftmost, px);
+        }
+    }
+    eastGap = leftmost / scale - roseRight;
+    check(leftmost < png.getWidth() && abs(eastGap - 24) <= 0.75,
+        "Batik rose-to-East painted gap: " & eastGap);
+    check(abs(visibleGap - eastGap) <= 0.75, "Both painted gaps are visually balanced");
     previous = hash(fileReadBinary(target));
     fileWrite(source, "<svg>malformed", "utf-8");
     rejected = false;

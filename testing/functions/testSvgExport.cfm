@@ -15,6 +15,8 @@ check(arrayLen(xmlSearch(xml, "//*[local-name()='text']")) == 4, "Four suits in 
 check(find("10 x", hand) > 0, "Ten and unknown rank formatting");
 check(find('style=', hand) == 0 && find('<style', hand) > 0, "Embedded CSS instead of inline styles");
 check(find("foreignObject", hand) == 0, "Portable SVG primitives");
+check(find('data:font/ttf;base64,', hand) > 0 && find('@font-face', hand) > 0,
+    "Bundled fonts embedded so Chrome and Batik use the same metrics");
 check(find('>-</tspan>', hand) > 0, "Empty suit rendered as a dash");
 check(arrayLen(xmlSearch(xmlParse(parser.exportSvg("...")), "//*[local-name()='text']")) == 4, "All empty suits");
 deal = 'E:AKQ.JT9.876.543 2.3.4.5 - T98.AKQ.JT9.876';
@@ -86,19 +88,6 @@ shortDeal = "N:A.K.Q.J A.K.Q.J A.K.Q.J A.K.Q.J";
 longEast = "N:A.K.Q.J AKQJT98765432... A.K.Q.J A.K.Q.J";
 longWest = "N:A.K.Q.J A.K.Q.J A.K.Q.J AKQJT98765432...";
 longNorth = "N:AKQJT98765432... A.K.Q.J A.K.Q.J A.K.Q.J";
-baseLayout = layout(shortDeal);
-for (source in [shortDeal, longEast, longWest, longNorth]) {
-    diagram = layout(source);
-    check(diagram.n == diagram.s && diagram.rose - diagram.n == 24, "Rose anchored handGap right of N/S");
-    check(diagram.rose + diagram.roseWidth / 2 == diagram.width / 2, "Rose centered in canvas");
-    check(diagram.n - diagram.width / 2 == baseLayout.n - baseLayout.width / 2,
-        "N/S aligns across centered diagrams with differing suit lengths");
-    check(diagram.e - (diagram.rose + diagram.roseWidth) == 36, "East starts handGap plus columnGap from rose");
-}
-eastLayout = layout(longEast);
-westLayout = layout(longWest);
-check(eastLayout.width == westLayout.width && eastLayout.e == westLayout.e,
-    "Swapping long East/West holdings preserves canvas width and East position");
 // The long suit has 26 displayed characters, including the expanded ten and spaces.
 metricsFontClass = createObject("java", "java.awt.Font");
 metricsFont = metricsFontClass.createFont(metricsFontClass.TRUETYPE_FONT,
@@ -107,39 +96,61 @@ metricsFont = metricsFontClass.createFont(metricsFontClass.TRUETYPE_FONT,
 metricsContext = createObject("java", "java.awt.font.FontRenderContext").init(
     createObject("java", "java.awt.geom.AffineTransform").init(), true, true);
 longAdvance = metricsFont.getStringBounds("A K Q J 10 9 8 7 6 5 4 3 2", metricsContext).getWidth();
-expectedWingWidth = 24 + longAdvance;
-shortWestWidth = 24 + metricsFont.getStringBounds("A", metricsContext).getWidth();
-check(eastLayout.rose - (eastLayout.w + shortWestWidth) == 36,
+longInk = metricsFont.createGlyphVector(metricsContext, "A K Q J 10 9 8 7 6 5 4 3 2").getVisualBounds().getMaxX();
+expectedWingWidth = 24 + longInk;
+shortWestWidth = 0;
+for (rank in ["A","K","Q","J"])
+    shortWestWidth = max(shortWestWidth, 24 + metricsFont.createGlyphVector(metricsContext, rank).getVisualBounds().getMaxX());
+symbolFont = metricsFontClass.createFont(metricsFontClass.TRUETYPE_FONT,
+    createObject("java", "java.io.File").init(getDirectoryFromPath(getCurrentTemplatePath())
+        & "../../assets/fonts/dejavu-sans/DejaVuSans.ttf")).deriveFont(javacast("float", 14));
+symbolLeft = 999999;
+for (symbol in ["♠","♥","♦","♣"])
+    symbolLeft = min(symbolLeft, symbolFont.createGlyphVector(metricsContext, symbol).getVisualBounds().getMinX());
+baseLayout = layout(shortDeal);
+for (source in [shortDeal, longEast, longWest, longNorth]) {
+    diagram = layout(source);
+    check(diagram.n == diagram.s && diagram.rose - diagram.n == 24, "Rose anchored handGap right of N/S");
+    check(diagram.rose + diagram.roseWidth / 2 == diagram.width / 2, "Rose centered in canvas");
+    check(diagram.n - diagram.width / 2 == baseLayout.n - baseLayout.width / 2,
+        "N/S aligns across centered diagrams with differing suit lengths");
+    check(abs(diagram.e + symbolLeft - (diagram.rose + diagram.roseWidth + 0.5) - 36) < 0.001, "East starts handGap plus columnGap from rose");
+}
+eastLayout = layout(longEast);
+westLayout = layout(longWest);
+check(eastLayout.width == westLayout.width && eastLayout.e == westLayout.e,
+    "Swapping long East/West holdings preserves canvas width and East position");
+check(abs(eastLayout.rose - 0.5 - (eastLayout.w + shortWestWidth) - 36) < 0.001,
     "Short West hand stays beside rose when East is long");
-check(westLayout.rose - (westLayout.w + expectedWingWidth) == 36,
+check(abs(westLayout.rose - 0.5 - (westLayout.w + expectedWingWidth) - 36) < 0.001,
     "Long West hand retains the same clearance from rose");
 check(eastLayout.w - westLayout.w == expectedWingWidth - shortWestWidth,
     "Unused West column space is placed on the left");
 check(eastLayout.w + shortWestWidth - eastLayout.width / 2 == baseLayout.w + shortWestWidth - baseLayout.width / 2,
     "West right edge aligns across centered deals when only East grows");
-check(westLayout.w + eastLayout.e + expectedWingWidth == eastLayout.width,
+check(abs(westLayout.w + symbolLeft + eastLayout.e + expectedWingWidth - eastLayout.width) < 0.001,
     "Reserved E/W columns retain symmetric outer margins");
 westRows = xmlSearch(xmlParse(parser.exportSvg(longEast)), "//*[local-name()='g' and @class='bridge-svg-hand bridge-svg-w']/*");
 for (row in westRows)
     check(row.xmlAttributes.x == eastLayout.w, "West suits remain left-aligned within the right-aligned hand");
 customShortWest = layout(longEast, {handGap:40, columnGap:20, padding:16});
-check(customShortWest.rose - (customShortWest.w + shortWestWidth) == 60,
+check(abs(customShortWest.rose - 0.5 - (customShortWest.w + shortWestWidth) - 60) < 0.001,
     "Short West respects custom clearance from rose");
 noRoseShortWest = layout(longEast, {rose:false});
 check(noRoseShortWest.w == eastLayout.w, "Short West alignment retained with rose hidden");
 check(layout(longNorth).n + expectedWingWidth <= layout(longNorth).width - 12, "Long N/S fits within padded canvas");
 customLayout = layout(longWest, {handGap:40, columnGap:20, padding:16});
 check(customLayout.rose - customLayout.n == 40
-    && customLayout.rose - (customLayout.w + expectedWingWidth) == 60,
+    && customLayout.rose - (customLayout.w + expectedWingWidth) == 60.5,
     "Custom handGap and columnGap apply to horizontal anchors");
-check(customLayout.e - customLayout.rose - customLayout.roseWidth == 60, "Custom East gap matches West");
+check(abs(customLayout.e + symbolLeft - customLayout.rose - customLayout.roseWidth - 0.5 - 60) < 0.001, "Custom East gap matches West");
 noRose = layout(longWest, {rose:false});
 check(noRose.n == westLayout.n && noRose.w == westLayout.w && noRose.e == westLayout.e,
     "Hiding rose preserves horizontal alignment");
 requestedSpacing = {handGap:"18", columnGap:"6", wordSpacing:"-4", suitGap:"12", rowSpacing:"16"};
 compactWest = layout(longWest, requestedSpacing);
-compactWidth = 12 + longAdvance - 12 * 4;
-check(abs(compactWest.rose - compactWest.w - compactWidth - 24) < 0.001,
+compactWidth = 12 + longInk - 12 * 4;
+check(abs(compactWest.rose - 0.5 - compactWest.w - compactWidth - 24) < 0.001,
     "Exact reported settings leave 24 units after the longest West suit");
 noWordSpacing = duplicate(requestedSpacing);
 noWordSpacing.wordSpacing = 0;
@@ -149,7 +160,7 @@ check(abs((unspacedWest.rose - unspacedWest.w) - (compactWest.rose - compactWest
 negativeLetters = duplicate(requestedSpacing);
 negativeLetters.letterSpacing = -1;
 letterWest = layout(longWest, negativeLetters);
-check(abs(letterWest.rose - letterWest.w - (compactWidth - 25) - 24) < 0.001,
+check(abs(letterWest.rose - 0.5 - letterWest.w - (compactWidth - 25) - 24) < 0.001,
     "Negative letter spacing also changes the West anchor");
 fontOptions = {fontFamily:'"My Cards", monospace', suitFontFamily:"My Symbols", labelFontFamily:"My Labels"};
 fontDoc = xmlParse(parser.exportSvg(shortDeal, fontOptions));
