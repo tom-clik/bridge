@@ -16,13 +16,320 @@ Returns HTML for hand, suit combo, or deal diagram
 
 component {
 
-	public function init(required jsoupObj, boolean debug=0) {
-		variables.jsoupObj = arguments.jsoupObj; 
+	public function init(jsoupObj, boolean debug=0) {
+		if (structKeyExists(arguments, "jsoupObj")) variables.jsoupObj = arguments.jsoupObj;
 		variables.playerList = ['n','e','w','s'];
 		this.debug = arguments.debug;
 
 		return this;
 	}
+
+    /** Import one hand from raw LIN, a Handviewer query/URL, or a redirect/LIN URL.
+     * Uses the same deal/auction/notes schema as parsePBN. No jsoup object needed.
+     * Network resolution is optional; callers handling untrusted input can disable it.
+     */
+    public struct function parseHandviewer(required string input, boolean resolveURLs=true) localmode=true {
+        source = trim(arguments.input);
+        for (hop = 0; hop <= 5; hop++) {
+            if (reFindNoCase("^[a-z]{2}\|", source)) return parseLIN(source);
+            query = source;
+            if (find("?", query)) query = mid(query, find("?", query) + 1, len(query));
+            params = {};
+            for (pair in listToArray(query, "&")) {
+                equals = find("=", pair);
+                if (equals) {
+                    key = lCase(urlDecode(left(pair, equals - 1)));
+                    value = mid(pair, equals + 1, len(pair));
+                    // BBO also emits partly encoded LIN URLs with literal pipes and 3+ explanations.
+                    if (key == "lin" && find("|", value)) value = replace(value, "+", "%2B", "all");
+                    params[key] = urlDecode(value);
+                }
+            }
+            if (params.keyExists("lin")) return parseLIN(params.lin);
+            if (params.keyExists("n") || params.keyExists("s") || params.keyExists("e") || params.keyExists("w") || params.keyExists("a")) {
+                return importHandviewerFields(params);
+            }
+            if (!reFindNoCase("^https?://", source) || !arguments.resolveURLs || hop == 5) {
+                throw(type="bridge", message="Expected LIN data or a Handviewer URL/query; URL resolution is disabled, exhausted, or unavailable.");
+            }
+            validateHandviewerURL(source);
+            response = requestHandviewerURL(source);
+            status = val(response.statusCode);
+            if (status >= 300 && status < 400 && response.responseHeader.keyExists("Location")) {
+                source = createObject("java", "java.net.URI").init(source).resolve(response.responseHeader.Location).toString();
+            } else if (status >= 200 && status < 300) {
+                source = trim(toString(response.fileContent));
+                if (!reFindNoCase("^[a-z]{2}\|", source)) throw(type="bridge", message="The URL did not return LIN data.");
+            } else {
+                throw(type="bridge", message="Unable to load Handviewer/LIN URL (HTTP " & status & ").");
+            }
+        }
+    }
+
+    /** Exact host allowlist, checked before each request, including redirected requests. */
+    private void function validateHandviewerURL(required string url) localmode=true {
+        try {
+            uri = createObject("java", "java.net.URI").init(arguments.url);
+            scheme = isNull(uri.getScheme()) ? "" : lCase(uri.getScheme());
+            authority = isNull(uri.getRawAuthority()) ? "" : uri.getRawAuthority();
+            port = uri.getPort();
+            allowed = (scheme == "http" || scheme == "https")
+                && reFindNoCase("^(?:www\.)?(?:bridgebase\.com|tinyurl\.com)(?::[0-9]+)?$", authority)
+                && (port == -1 || (scheme == "http" && port == 80) || (scheme == "https" && port == 443));
+        } catch (any e) {
+            allowed = false;
+        }
+        if (!allowed) throw(type="bridge", message="URL fetching is restricted to bridgebase.com and tinyurl.com (with optional www) on standard HTTP/HTTPS ports. Paste the Handviewer link containing hand data or raw LIN instead.");
+    }
+
+    /** Keep transport separate so redirect policy can be tested without network access. */
+    private struct function requestHandviewerURL(required string url) localmode=true {
+        http url=arguments.url method="get" redirect=false timeout=15 result="response";
+        return response;
+    }
+
+    /** Parse LIN command/value pairs, preserving empty values and ignoring unknown commands. */
+    public struct function parseLIN(required string text) localmode=true {
+        fields = listToArray(trim(arguments.text), "|", true);
+        if (fields.len() && fields[fields.len()] == "") fields.deleteAt(fields.len());
+        if (fields.len() % 2) throw(type="bridge", message="LIN commands must have a value (which may be empty).");
+        hand = {auction:[], notes:[], play_ordered:[], comments:[]};
+        rawDeal = {};
+        positions = ["s", "w", "n", "e"];
+        names = {s:"South", w:"West", n:"North", e:"East"};
+        seenDeal = false;
+        for (i = 1; i < fields.len(); i += 2) {
+            command = lCase(trim(fields[i]));
+            value = fields[i + 1];
+            switch (command) {
+                case "md":
+                    if (seenDeal) throw(type="bridge", message="Import one LIN board at a time.");
+                    seenDeal = true;
+                    if (!reFind("^[1-4]", value)) throw(type="bridge", message="Invalid LIN dealer.");
+                    hand.dealer = uCase(positions[val(left(value, 1))]);
+                    hands = listToArray(mid(value, 2, len(value)), ",", true);
+                    if (hands.len() > 4) throw(type="bridge", message="Too many hands in LIN deal.");
+                    for (j = 1; j <= hands.len(); j++) rawDeal[positions[j]] = hands[j];
+                    break;
+                case "pn":
+                    players = listToArray(value, ",", true);
+                    for (j = 1; j <= min(4, players.len()); j++) hand[names[positions[j]]] = players[j];
+                    break;
+                case "sv": hand.vulnerable = importVulnerability(value); break;
+                case "ah": hand.board = reReplaceNoCase(value, "^Board\s+", ""); break;
+                case "st": case "title": if (len(value)) hand.event = value; break;
+                case "nt": hand.comments.append(value); break;
+                case "mb": appendImportedCall(hand, value); break;
+                case "an": appendImportedNote(hand, value); break;
+                case "pc":
+                    card = uCase(trim(value));
+                    if (!reFind("^[SHDC][AKQJT2-9]$", card)) throw(type="bridge", message="Invalid LIN card: " & value);
+                    hand.play_ordered.append(card);
+                    break;
+            }
+        }
+        if (!seenDeal && !hand.auction.len() && !hand.play_ordered.len()) throw(type="bridge", message="No hand, auction or play found in LIN data.");
+        if (seenDeal) hand.deal = importDeal(rawDeal);
+        deriveImportedContract(hand);
+        return hand;
+    }
+
+    private struct function importHandviewerFields(required struct fields) localmode=true {
+        hand = {auction:[], notes:[], play_ordered:[]};
+        mapping = {b:"board", d:"dealer", sn:"South", wn:"West", nn:"North", en:"East", st:"event"};
+        for (key in mapping) if (fields.keyExists(key)) hand[mapping[key]] = fields[key];
+        if (fields.keyExists("v")) hand.vulnerable = importVulnerability(fields.v);
+        rawDeal = {};
+        for (pos in ["n", "e", "s", "w"]) if (fields.keyExists(pos)) rawDeal[pos] = fields[pos];
+        if (rawDeal.count()) hand.deal = importDeal(rawDeal);
+        if (fields.keyExists("a")) {
+            // Consume the whole auction: unmatched text must not silently disappear.
+            auction = trim(fields.a);
+            while (len(auction)) {
+                token = reFindNoCase("^(\([^)]*\)|[1-7](?:NT|[NSHDC])!?|PASS|AP|XX|RDBL|DBL|[PDRX]|[-?])", auction, 1, true);
+                if (!token.len[1]) throw(type="bridge", message="Invalid Handviewer auction near: " & auction);
+                value = left(auction, token.len[1]);
+                if (left(value, 1) == "(") appendImportedNote(hand, mid(value, 2, len(value) - 2));
+                else appendImportedCall(hand, value);
+                auction = trim(mid(auction, len(value) + 1, len(auction)));
+            }
+        }
+        if (fields.keyExists("p")) {
+            play = uCase(reReplace(fields.p, "\s+", "", "all"));
+            if (len(play) % 2 || reFind("[^SHDCAKQJT2-9]", play)) throw(type="bridge", message="Invalid Handviewer play sequence.");
+            for (i = 1; i <= len(play); i += 2) {
+                card = mid(play, i, 2);
+                if (!reFind("^[SHDC][AKQJT2-9]$", card)) throw(type="bridge", message="Invalid Handviewer card: " & card);
+                hand.play_ordered.append(card);
+            }
+        }
+        deriveImportedContract(hand);
+        return hand;
+    }
+
+    private string function importVulnerability(required string value) localmode=true {
+        mapping = {o:"None", "-":"None", none:"None", b:"Both", both:"Both", all:"Both", n:"NS", ns:"NS", e:"EW", ew:"EW"};
+        if (!mapping.keyExists(trim(value))) throw(type="bridge", message="Invalid vulnerability: " & value);
+        return mapping[trim(value)];
+    }
+
+    private void function appendImportedCall(required struct hand, required string value) localmode=true {
+        call = uCase(trim(value));
+        alerted = right(call, 1) == "!";
+        if (alerted) call = left(call, len(call) - 1);
+        aliases = {p:"Pass", pass:"Pass", d:"X", dbl:"X", r:"XX", rdbl:"XX"};
+        if (aliases.keyExists(call)) call = aliases[call];
+        if (reFind("^[1-7]N$", call)) call &= "T";
+        if (!reFindNoCase("^(?:[1-7](?:NT|[SHDC])|Pass|AP|X|XX|[-?])$", call)) throw(type="bridge", message="Invalid auction call: " & value);
+        hand.auction.append({bid:call, note:"", flage:""});
+        if (alerted) appendImportedNote(hand, "Alert");
+    }
+
+    private void function appendImportedNote(required struct hand, required string value) localmode=true {
+        if (!hand.auction.len()) throw(type="bridge", message="An explanation must follow an auction call.");
+        suits = {S:"♠", H:"♥", C:"♣", D:"♦"};
+        for (suit in suits) arguments.value = replaceNoCase(arguments.value, "!" & suit, suits[suit], "all");
+        call = hand.auction[hand.auction.len()];
+        if (len(call.note)) {
+            note = hand.notes[val(call.note)];
+            note.note = note.note == "Alert" ? value : note.note & "; " & value;
+        } else {
+            call.note = toString(hand.notes.len() + 1);
+            hand.notes.append({marker:call.note, note:value});
+        }
+    }
+
+    /** Normalize holdings; infer only the fourth hand when the other three contain 39 cards. */
+    private struct function importDeal(required struct rawDeal) localmode=true {
+        deal = {};
+        used = {};
+        missing = [];
+        counts = {};
+        for (pos in ["n", "e", "s", "w"]) {
+            deal[pos] = {s:"", h:"", d:"", c:""};
+            counts[pos] = 0;
+            holding = rawDeal.keyExists(pos) ? uCase(reReplace(rawDeal[pos], "\s+", "", "all")) : "";
+            if (!len(holding) || holding == "-") { missing.append(pos); continue; }
+            holding = replace(holding, "10", "T", "all");
+            suit = "";
+            for (i = 1; i <= len(holding); i++) {
+                char = mid(holding, i, 1);
+                if (find(char, "SHDC")) { suit = lCase(char); continue; }
+                if (char == "-") continue;
+                if (!len(suit) || !find(char, "AKQJT98765432")) throw(type="bridge", message="Invalid holding for " & pos & ": " & holding);
+                card = suit & char;
+                if (used.keyExists(card)) throw(type="bridge", message="Duplicate card: " & card);
+                used[card] = true;
+                deal[pos][suit] &= char;
+                counts[pos]++;
+            }
+            if (counts[pos] > 13) throw(type="bridge", message="More than 13 cards in hand " & pos);
+        }
+        if (missing.len() == 1 && used.count() == 39) {
+            for (suit in ["s", "h", "d", "c"]) {
+                for (i = 1; i <= 13; i++) {
+                    rank = mid("AKQJT98765432", i, 1);
+                    if (!used.keyExists(suit & rank)) deal[missing[1]][suit] &= rank;
+                }
+            }
+        }
+        for (pos in deal) {
+            for (suit in deal[pos]) {
+                sorted = "";
+                for (i = 1; i <= 13; i++) {
+                    rank = mid("AKQJT98765432", i, 1);
+                    if (find(rank, deal[pos][suit])) sorted &= rank;
+                }
+                deal[pos][suit] = len(sorted) ? sorted : "-";
+            }
+        }
+        return deal;
+    }
+
+    private void function deriveImportedContract(required struct hand) localmode=true {
+        if (!hand.keyExists("dealer") || !len(hand.dealer)) return;
+        if (!reFindNoCase("^[NESW]$", hand.dealer)) throw(type="bridge", message="Invalid dealer: " & hand.dealer);
+        hand.dealer = uCase(hand.dealer);
+        bidder = hand.dealer;
+        firstBidders = {};
+        contract = "";
+        modifier = "";
+        passes = 0;
+        complete = false;
+        unknown = false;
+        for (call in hand.auction) {
+            if (complete) throw(type="bridge", message="Auction continues after completion.");
+            bid = uCase(call.bid);
+            if (reFind("^[1-7]", bid)) {
+                denomination = mid(bid, 2, len(bid));
+                side = findNoCase(bidder, "NS") ? "NS" : "EW";
+                key = side & denomination;
+                if (!firstBidders.keyExists(key)) firstBidders[key] = bidder;
+                declarer = firstBidders[key];
+                contract = bid;
+                modifier = "";
+                passes = 0;
+            } else if (bid == "X" || bid == "XX") {
+                if (!len(contract)) throw(type="bridge", message="A double or redouble must follow a contract bid.");
+                modifier = bid;
+                passes = 0;
+            } else if (bid == "PASS" || bid == "AP") {
+                passes++;
+                complete = bid == "AP" || passes >= (len(contract) ? 3 : 4);
+            } else unknown = true;
+            bidder = uCase(getNextPosition(bidder));
+        }
+        // Incomplete/example auctions must not acquire a made-up final contract.
+        if (!complete || unknown) return;
+        hand.contract = len(contract) ? contract & modifier : "Pass";
+        if (len(contract)) hand.declarer = declarer;
+    }
+
+    /** Export the shared parser schema. Play is copied verbatim into our unofficial extension. */
+    public string function exportPBN(required struct hand) localmode=true {
+        lines = [];
+        if (hand.keyExists("comments")) for (comment in hand.comments) {
+            for (line in listToArray(comment, chr(13) & chr(10))) lines.append("% " & line);
+        }
+        for (tag in ["Event", "Site", "Date", "Board", "West", "North", "East", "South", "Dealer", "Vulnerable", "Scoring", "Declarer", "Contract", "Result"]) {
+            if (hand.keyExists(tag)) lines.append(pbnTag(tag, hand[tag]));
+        }
+        if (hand.keyExists("deal")) {
+            holdings = [];
+            for (pos in ["n", "e", "s", "w"]) {
+                if (!hand.deal.keyExists(pos)) { holdings.append("-"); continue; }
+                suits = [];
+                for (suit in ["s", "h", "d", "c"]) suits.append(replace(hand.deal[pos][suit], "-", "", "all"));
+                holding = arrayToList(suits, ".");
+                holdings.append(holding == "..." ? "-" : holding);
+            }
+            lines.append(pbnTag("Deal", "N:" & arrayToList(holdings, " ")));
+        }
+        if (hand.keyExists("auction") && hand.auction.len()) {
+            lines.append(pbnTag("Auction", hand.keyExists("dealer") ? hand.dealer : "?"));
+            row = [];
+            for (call in hand.auction) {
+                text = call.bid;
+                if (call.keyExists("note") && len(call.note)) text &= " =" & call.note & "=";
+                row.append(text);
+                if (row.len() == 4) { lines.append(arrayToList(row, " ")); row = []; }
+            }
+            if (row.len()) lines.append(arrayToList(row, " "));
+            if (hand.keyExists("notes")) for (note in hand.notes) lines.append(pbnTag("Note", note.marker & ":" & note.note));
+        }
+        if (hand.keyExists("play_ordered") && hand.play_ordered.len()) {
+            lines.append("[play_ordered]");
+            lines.append(arrayToList(hand.play_ordered, " "));
+            if (hand.keyExists("play_notes")) for (note in hand.play_notes) lines.append(pbnTag("Note", note.marker & ":" & note.note));
+        }
+        return arrayToList(lines, chr(10)) & chr(10);
+    }
+
+    private string function pbnTag(required string name, required string value) {
+        var escaped = replace(arguments.value, '\', '\\', "all");
+        escaped = replace(escaped, '"', '\"', "all");
+        return '[' & arguments.name & ' "' & escaped & '"]';
+    }
 
 	/** Convert Markdown inline code to publication auction text, keeping code blocks literal. */
 	public void function formatInlineAuctions(required node) localmode=true {
@@ -284,7 +591,7 @@ component {
 
 	*/
 
-	private function parsePBN(required string text) localmode=true {
+	public function parsePBN(required string text) localmode=true {
 
 		data = parseTaggedText(text);
 
@@ -294,6 +601,10 @@ component {
 		for ( tag in data ) {
 			
 			switch (tag.tag) {
+				case "play": case "play_ordered":
+					// Preserve source order only. Standard Play columns are NOT reordered.
+					pbnData["play_ordered"] = listToArray(tag.text, " " & chr(9) & chr(10) & chr(13));
+					break;
 				case "deal":
 					pbnData["deal"] = parseDealData(tag.attributes);
 					break;
@@ -304,7 +615,11 @@ component {
 					pbnData["auction"] = parseAuction( tag.text );
 					break;
 				case "note":
-					// ignore play notes for now
+					if (currentTag == "play" || currentTag == "play_ordered") {
+						if (!pbnData.keyExists("play_notes")) pbnData.play_notes = [];
+						pbnData.play_notes.append({marker:listFirst(tag.attributes, ":"), note:listRest(tag.attributes, ":")});
+						continue;
+					}
 					if ( currentTag != "auction") continue;
 					if (not StructKeyExists(pbnData,'notes')) {
 						pbnData['notes'] = ArrayNew(1);
@@ -360,9 +675,9 @@ component {
 	    for (i = 1; i <= lenInput; i++) {
 	        ch = mid(arguments.input, i, 1);
 
-	        // Only a complete PBN header starts a record; auction markers such
+	            // Only a complete PBN header (or our bare play_ordered extension) starts a record; auction markers such
 	        // as [1] must remain in the text passed to parseAuction.
-	        if (!inTag && ch == "[" && reFind('\[\s*[A-Za-z][A-Za-z0-9_]*\s+"[^"]*"\s*\]', arguments.input, i) == i) {
+	        if (!inTag && ch == "[" && reFindNoCase('\[\s*(?:[A-Za-z][A-Za-z0-9_]*\s+"(?:\\.|[^"\\])*"|play_ordered)\s*\]', arguments.input, i) == i) {
 	            // Save previous tag before starting new one
 	            if (len(currentKey)) {
 	                result.append( {
@@ -387,6 +702,11 @@ component {
 	        }
 
 	        if (inTag) {
+	            if (inQuote && ch == '\' && i < lenInput && (mid(arguments.input, i + 1, 1) == '"' || mid(arguments.input, i + 1, 1) == '\')) {
+	                currentAttributes &= mid(arguments.input, i + 1, 1);
+	                i++;
+	                continue;
+	            }
 	            // End of tag
 	            if (!inQuote && ch == "]") {
 	                inTag = false;
@@ -606,19 +926,12 @@ component {
 
 		retStr = tidyHand(text=arguments.text);
 
-		if (Left(retStr,1) eq '.') {
-			retStr = '-' & retStr;
-		}
-
-		if (Right(retStr,1) eq '.') {
-			retStr = retStr & '-';
-		}
-		
-		retStr  = replace(retStr,"..",".-.");
-		
 		suits = find(".", retStr)
-			? ListToArray(retStr, ".")
+			? ListToArray(retStr, ".", true)
 			: ListToArray(retStr, "#chr(10)##chr(13)#, ");
+		for (var suitIndex = 1; suitIndex <= arrayLen(suits); suitIndex++) {
+			if (!len(suits[suitIndex])) suits[suitIndex] = "-";
+		}
 		
 		if (not ArrayLen(suits) == 4) {
 			throw(message = 'Hand [#arguments.text#]only has ' & ArrayLen(suits) & ' suits',type="bridge");
@@ -1073,7 +1386,10 @@ component {
 			
 			for (i=1; i lte ArrayLen(arguments.pbndata['notes']); i += 1) {
 				note = arguments.pbndata["notes"][i];
-				retStr &= "#tab##tab#<tr><td>(#note.marker#)</td><td>#note.note#</td></tr>#cr#";
+				// Decode HTML entities as text and reuse the idempotent suit wrapper.
+				noteDocument = variables.jsoupObj.Jsoup.parse(note.note);
+				wrapSuitSymbols(noteDocument);
+				retStr &= "#tab##tab#<tr><td>(#note.marker#)</td><td>#noteDocument.body().html()#</td></tr>#cr#";
 			}
 
 			retStr &= "#tab#</table>#cr#";

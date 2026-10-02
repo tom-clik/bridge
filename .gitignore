@@ -1,2 +1,5 @@
 # Local Sublime Text session state
 *.sublime-workspace
+
+# Machine-specific Handviewer save destinations
+/testing/handviewer_folders.json
