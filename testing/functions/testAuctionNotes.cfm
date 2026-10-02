@@ -47,6 +47,22 @@ check(!structKeyExists(playOnly, "notes"), "A play-only record has no auction no
 orphan = bridge.parsePBN('[Note "1:No auction"]');
 check(!structKeyExists(orphan, "notes"), "A note without an auction is ignored");
 
+// Square-bracket annotations belong to auction text, not to PBN records.
+bracketAuction = '[Auction "N"] 1C [1] P 1H [2] P [Note "1:Strong club"] [Note "2:Natural [four hearts]"]';
+tags = bridge.parseTaggedText(bracketAuction);
+check(tags.len() == 3, "Square-bracket markers do not create PBN records");
+check(tags[1].text == "1C [1] P 1H [2] P", "Complete auction text retains square-bracket annotations");
+bracketData = bridge.parsePBN(bracketAuction);
+check(bracketData.auction.len() == 4, "Calls after square-bracket annotations are retained");
+check(!structKeyExists(bracketData, "1") && !structKeyExists(bracketData, "2"), "Annotation markers do not become PBN keys");
+check(structKeyExists(bracketData, "notes") && bracketData.notes.len() == 2, "Notes still belong to the annotated auction");
+if (structKeyExists(bracketData, "notes") && bracketData.notes.len() == 2) {
+    check(bracketData.notes[2].note == "Natural [four hearts]", "Brackets inside quoted tag values are preserved");
+}
+// Bracketed text without a valid tag name and quoted value stays in the body.
+tags = bridge.parseTaggedText('[Auction "N"] 1C [1] [Note] [Note unquoted] [1 "invalid"] P [Note "1:Strong club"]');
+check(tags.len() == 2 && tags[1].text == '1C [1] [Note] [Note unquoted] [1 "invalid"] P', "Invalid PBN headers remain in the preceding record text");
+
 single = bridge.parsePBN('[Auction "S"]
 1NT =1= P P P
 [Note "1:15-17"]');

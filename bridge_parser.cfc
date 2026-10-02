@@ -360,8 +360,9 @@ component {
 	    for (i = 1; i <= lenInput; i++) {
 	        ch = mid(arguments.input, i, 1);
 
-	        // Start of a new tag
-	        if (!inTag && ch == "[") {
+	        // Only a complete PBN header starts a record; auction markers such
+	        // as [1] must remain in the text passed to parseAuction.
+	        if (!inTag && ch == "[" && reFind('\[\s*[A-Za-z][A-Za-z0-9_]*\s+"[^"]*"\s*\]', arguments.input, i) == i) {
 	            // Save previous tag before starting new one
 	            if (len(currentKey)) {
 	                result.append( {
