@@ -9,8 +9,7 @@ http://tpc25.clikpic.com/customtags/bridge/bridge_parser_test.cfm
 --->
 
 <cfscript>
-coldsoupObj = new coldsoup.coldsoup(server.system.environment.javalib & "\jsoup-1.20.1.jar");
-bridge = new bridge.bridge_parser(jsoupObj=coldsoupObj);
+bridge = new bridge.testing.bridgeTestObj();
 logger = new logger.logger(debug=1);
 bridge.loggerObj = logger;
 path = getDirectoryFromPath(getCurrentTemplatePath());
@@ -41,11 +40,10 @@ W:542 kq7 jt986 A3
 <h2>Full PBN</h2>
 <bridge id="hand1_4" file="hands/test_hand2.pbn" info="yes" style="2_4" lead="yes"></bridge> 
  --->
-
-<bridge>AK874 6532</bridge>
-
-<bridge>AKJ74 6532</bridge>
-
+<!--- <bridge>
+AKQJ1098765432...
+</bridge>
+ --->
 <!--- <h2>Notes</h2>
 <bridge style="0_2" north="Partner" south="You">
 [auction]
@@ -54,12 +52,74 @@ W:542 kq7 jt986 A3
 ?
 [note "1:waiting"]
 [note "2:positive"]	  
+</bridge> --->                          
+
+<!--- <bridge id="test" class="testclass" deal="S" auction="NS">
+[Deal "S:JT3.9.AQ75.AT643"]
+[South "Partner"]
+[North "You"]
+[Auction "S"]
+1C P 2C
+</bridge>
+<bridge deal="S" auction="NS">
+[Deal "S:JT3.9.AQ75.AT643"]
+[South "Partner"]
+[North "You"]
+[Auction "S"]
+1C P 2C
 </bridge> --->
 
+<bridge deal="EN">
+[Dealer "S"]
+[Vulnerable "EW"]
+[Deal "S:aq2.t72.a53.aj74 kt765.q95.7.9862 j843.akj.k82.kq5 9.8643.qjt964.t3"]
+[auction]
+1nt p 4c p
+4nt p 6nt ap
+</bridge>
+
+<bridge deal="wn">
+[Dealer "S"]
+[Vulnerable "EW"]
+[Deal "S:aq2.t72.a53.aj74 kt765.q95.7.9862 j843.akj.k82.kq5 9.8643.qjt964.t3"]
+[auction]
+1nt p 4c p
+4nt p 6nt ap
+</bridge>
+
+<bridge deal="S" auction="NS">
+[Deal "S:976.AT9.KQ875.AK"]
+[Auction "S"]
+1D      P       2D
+[South "Partner"]
+[North "You"]
+</bridge>
+
+<bridge deal="S" auction="NS">
+[Deal "S:92.87.AQ75.JT732"]
+[South "Partner"]
+[North "You"]
+[Auction "S"]
+1D  P  1NT
+</bridge>
+
+<bridge deal="EW">
+[Deal "E:AKJT9872.A9.J.K5 -.-.-.- 3.KQJ873.T98.643 -.-.-.-"]
+[Auction "E"]
+4D =1=  p 4S =2= p p
+[Note "1:shows 7+ strong spades and 8-9 tricks."]
+[Note "2:is a signoff."]
+[East "Opener"]
+[West "Responder"]
+[Dealer "N"]
+</bridge>
+<bridge style="4_0">
+[Deal "S:.t.5. .q9.. .kj.. .8.j."]
+</bridge>
 </cfsavecontent>
 
 <cfscript>
-data = coldsoupObj.parse(bridgeHands);
+data = bridge.flexmark.coldsoupObj.parse(bridgeHands);
 hands = data.select("bridge");
 for (hand in hands) {
 	html = bridge.bridgeTag(hand, path);
