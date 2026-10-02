@@ -6,7 +6,7 @@ See docs/svg-export.md for font registration. No external executable is required
 
 <cfscript>
 exampleDirectory = getDirectoryFromPath(getCurrentTemplatePath());
-svgPath = exampleDirectory & "svg_test.svg";
+svgPath = exampleDirectory & "svg_sample.svg";
 pngPath = exampleDirectory & "_output/output.png";
 // Supply application font files here when the selected SVG fonts are not installed.
 // Example: [expandPath("../assets/fonts/MyCards.ttf"), expandPath("../assets/fonts/MySymbols.ttf")]
