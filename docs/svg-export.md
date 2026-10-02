@@ -71,9 +71,9 @@ when using the same spacing options. Hiding the rose retains these horizontal an
 The canvas dimensions and vertical compass position are recalculated from these options.
 Very small `handGap` values are enlarged to reserve the estimated font height;
 compact rows also reserve space for the 56-unit compass when enabled. Deliberately
-small `rowSpacing` or `suitGap` values can overlap text. Width calculations reserve
-conservative font advances and expand for positive letter/word spacing; negative
-spacing tightens text without reducing that safety allowance.
+small `rowSpacing` or `suitGap` values can overlap text. Width calculations use Java font metrics and include both positive and negative
+letter/word spacing. The West anchor follows the measured text advance; visible
+ink can end slightly before that advance because of the final glyph’s side bearing.
 
 Text options are inherited SVG presentation attributes on the root, so different
 inline diagrams can use different values without their embedded CSS conflicting.
@@ -133,8 +133,10 @@ unchanged. Missing or invalid font files raise an error rather than being ignore
 
 Without supplied files, fonts must be installed on the conversion machine. A
 missing font falls back according to the SVG family list; generic `monospace` may
-resolve to Courier New on Windows. Use a monospace card font with ordinary metrics
-for the exporter's conservative width estimates. Font files supplied to the PNG
+resolve to Courier New on Windows. The exporter measures the first available family using Java font metrics and
+can measure the bundled DejaVu defaults directly from their files when not installed.
+For other custom fonts, install or register them before exporting as well as when
+converting, so both steps use the same metrics. Font files supplied to the PNG
 converter are not embedded in SVGs: browsers need the selected fonts installed or
 provided separately by the host page. Exact glyph metrics can vary by renderer.
 

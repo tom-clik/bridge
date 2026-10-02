@@ -11,7 +11,7 @@ imageIO = createObject("java", "javax.imageio.ImageIO");
 fileClass = createObject("java", "java.io.File");
 svg = xmlParse(fileRead(svgPath));
 png = imageIO.read(fileClass.init(pngPath));
-check(png.getWidth() == val(svg.svg.xmlAttributes.width), "Intrinsic PNG width");
+check(png.getWidth() == int(val(svg.svg.xmlAttributes.width) + 0.5), "Intrinsic PNG width");
 check(png.getHeight() == int(val(svg.svg.xmlAttributes.height) + 0.5), "Intrinsic PNG height");
 check(png.getColorModel().hasAlpha(), "Transparent PNG output");
 folder = getTempDirectory() & "bridge batik " & createUUID() & "/";
@@ -35,6 +35,29 @@ try {
     try { svgToPng(svgPath=source, pngPath=target, fontFiles=[badFont]); }
     catch (any e) { rejected = true; }
     check(rejected, "Invalid font file raises an error");
+    // Pixel-level regression: layout formulas alone missed negative word spacing.
+    parser = createObject("component", "bridge.bridge_parser");
+    compactSvg = parser.exportSvg("N:A.K.Q.J A.K.Q.J A.K.Q.J AKQJT98765432...",
+        {handGap:"18", columnGap:"6", wordSpacing:"-4", suitGap:"12", rowSpacing:"16"});
+    fileWrite(source, compactSvg, "utf-8");
+    compactXml = xmlParse(compactSvg);
+    scale = 4;
+    svgToPng(source, target, val(compactXml.svg.xmlAttributes.width) * scale);
+    png = imageIO.read(fileClass.init(target));
+    rose = xmlSearch(compactXml, "//*[local-name()='rect']")[1];
+    west = xmlSearch(compactXml, "//*[local-name()='g' and @class='bridge-svg-hand bridge-svg-w']/*")[1];
+    roseX = val(rose.xmlAttributes.x);
+    baseline = val(west.xmlAttributes.y);
+    rightmost = 0;
+    for (py = int((baseline - 14) * scale); py < int((baseline + 2) * scale); py++) {
+        for (px = int(west.xmlAttributes.x * scale); px < int((roseX - 2) * scale); px++) {
+            if (bitAnd(png.getRGB(javacast("int", px), javacast("int", py)), -16777216) != 0)
+                rightmost = max(rightmost, px + 1);
+        }
+    }
+    visibleGap = roseX - rightmost / scale;
+    check(rightmost > 0 && abs(visibleGap - 24) <= 2,
+        "Batik West-to-rose gap with negative word spacing: " & visibleGap);
     previous = hash(fileReadBinary(target));
     fileWrite(source, "<svg>malformed", "utf-8");
     rejected = false;

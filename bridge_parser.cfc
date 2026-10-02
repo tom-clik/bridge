@@ -216,16 +216,19 @@ component {
 			hands.n = svgParseHand(source);
 		}
 
-		// Reserve a conservative monospace advance; negative spacing can tighten text
-		// without shrinking the canvas below its unspaced estimate.
+		// Measure the selected font instead of reserving an unspaced character grid.
+		// Both positive and negative spacing must affect the West-hand anchor.
+		cardFont = svgCardFont(settings.fontFamily, settings.fontSize);
+		fontContext = createObject("java", "java.awt.font.FontRenderContext").init(
+			createObject("java", "java.awt.geom.AffineTransform").init(), true, true);
 		handWidths = {n:0, e:0, s:0, w:0};
 		for (seat in hands) {
 			if (isDeal && !findNoCase(seat, settings.deal)) continue;
 			for (suit in ["s","h","d","c"]) {
 				cards = suitFormat(hands[seat][suit]);
 				spaces = len(cards) - len(replace(cards, " ", "", "all"));
-				cardWidth = len(cards) * (settings.fontSize * 9 / 14 + max(0, settings.letterSpacing))
-					+ spaces * max(0, settings.wordSpacing);
+				cardWidth = cardFont.getStringBounds(cards, fontContext).getWidth()
+					+ (len(cards) - 1) * settings.letterSpacing + spaces * settings.wordSpacing;
 				handWidths[seat] = max(handWidths[seat], settings.suitGap + cardWidth);
 			}
 		}
@@ -289,6 +292,46 @@ component {
 		}
 		parts.append('</svg>');
 		return arrayToList(parts, chr(10));
+	}
+
+	/** Resolve the first installed family in the same order as the SVG fallback list. */
+	private function svgCardFont(required string families, required numeric size) localmode=true {
+		available = createObject("java", "java.awt.GraphicsEnvironment").getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+		generic = {"monospace":"Monospaced", "sans-serif":"SansSerif", "serif":"Serif", "cursive":"Dialog", "fantasy":"Dialog"};
+		family = "SansSerif";
+		bundled = {"DejaVu Sans Mono":"assets/fonts/dejavu-sans-mono/DejaVuSansMono.ttf",
+			"DejaVu Sans":"assets/fonts/dejavu-sans/DejaVuSans.ttf"};
+		found = false;
+		for (candidate in listToArray(arguments.families, ",")) {
+			candidate = trim(candidate);
+			if (len(candidate) >= 2 && ((left(candidate, 1) == '"' && right(candidate, 1) == '"')
+				|| (left(candidate, 1) == "'" && right(candidate, 1) == "'")))
+				candidate = mid(candidate, 2, len(candidate) - 2);
+			if (structKeyExists(generic, candidate)) {
+				family = generic[candidate];
+				break;
+			}
+			for (installed in available) {
+				if (compareNoCase(candidate, installed) == 0) {
+					family = installed;
+					found = true;
+					break;
+				}
+			}
+			if (found) break;
+			// The repository's default fonts may be supplied to Batik without being
+			// installed system-wide. Measure those same files on the first export.
+			if (structKeyExists(bundled, candidate)) {
+				fontPath = getDirectoryFromPath(getCurrentTemplatePath()) & bundled[candidate];
+				if (fileExists(fontPath)) {
+					font = createObject("java", "java.awt.Font");
+					return font.createFont(font.TRUETYPE_FONT, createObject("java", "java.io.File").init(fontPath))
+						.deriveFont(javacast("float", arguments.size));
+				}
+			}
+		}
+		return createObject("java", "java.awt.Font").init(family, javacast("int", 0), javacast("int", 1))
+			.deriveFont(javacast("float", arguments.size));
 	}
 
 	/** Normalize empty suits before reusing the existing hand parser. */

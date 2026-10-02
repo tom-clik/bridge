@@ -29,7 +29,7 @@ filtered = parser.exportSvg(deal, {deal:"NS", rose:false, monochrome:true});
 check(arrayLen(xmlSearch(xmlParse(filtered), "//*[local-name()='text']")) == 8, "Seat selection and no compass");
 check(find('class="bridge-svg bridge-svg-mono"', filtered) > 0, "Monochrome class");
 longHand = xmlParse(parser.exportSvg("AKQJT98765432..."));
-check(longHand.svg.xmlAttributes.width >= 280, "Long holdings grow the canvas");
+check(longHand.svg.xmlAttributes.width >= 260, "Long holdings grow the canvas");
 for (bad in ["", "AKQ.JT.98", "N:AKQ.JT9.876.543", '[Event "No deal"]', "AK-Q...", "AKQ<script>..."]) {
     rejected = false;
     try { parser.exportSvg(bad); } catch (any e) { rejected = true; }
@@ -100,8 +100,15 @@ westLayout = layout(longWest);
 check(eastLayout.width == westLayout.width && eastLayout.e == westLayout.e,
     "Swapping long East/West holdings preserves canvas width and East position");
 // The long suit has 26 displayed characters, including the expanded ten and spaces.
-expectedWingWidth = 24 + 26 * 9;
-shortWestWidth = 24 + 9;
+metricsFontClass = createObject("java", "java.awt.Font");
+metricsFont = metricsFontClass.createFont(metricsFontClass.TRUETYPE_FONT,
+    createObject("java", "java.io.File").init(getDirectoryFromPath(getCurrentTemplatePath())
+        & "../../assets/fonts/dejavu-sans-mono/DejaVuSansMono.ttf")).deriveFont(javacast("float", 14));
+metricsContext = createObject("java", "java.awt.font.FontRenderContext").init(
+    createObject("java", "java.awt.geom.AffineTransform").init(), true, true);
+longAdvance = metricsFont.getStringBounds("A K Q J 10 9 8 7 6 5 4 3 2", metricsContext).getWidth();
+expectedWingWidth = 24 + longAdvance;
+shortWestWidth = 24 + metricsFont.getStringBounds("A", metricsContext).getWidth();
 check(eastLayout.rose - (eastLayout.w + shortWestWidth) == 36,
     "Short West hand stays beside rose when East is long");
 check(westLayout.rose - (westLayout.w + expectedWingWidth) == 36,
@@ -129,6 +136,21 @@ check(customLayout.e - customLayout.rose - customLayout.roseWidth == 60, "Custom
 noRose = layout(longWest, {rose:false});
 check(noRose.n == westLayout.n && noRose.w == westLayout.w && noRose.e == westLayout.e,
     "Hiding rose preserves horizontal alignment");
+requestedSpacing = {handGap:"18", columnGap:"6", wordSpacing:"-4", suitGap:"12", rowSpacing:"16"};
+compactWest = layout(longWest, requestedSpacing);
+compactWidth = 12 + longAdvance - 12 * 4;
+check(abs(compactWest.rose - compactWest.w - compactWidth - 24) < 0.001,
+    "Exact reported settings leave 24 units after the longest West suit");
+noWordSpacing = duplicate(requestedSpacing);
+noWordSpacing.wordSpacing = 0;
+unspacedWest = layout(longWest, noWordSpacing);
+check(abs((unspacedWest.rose - unspacedWest.w) - (compactWest.rose - compactWest.w) - 48) < 0.001,
+    "Twelve spaces at minus four remove 48 units of reserved width");
+negativeLetters = duplicate(requestedSpacing);
+negativeLetters.letterSpacing = -1;
+letterWest = layout(longWest, negativeLetters);
+check(abs(letterWest.rose - letterWest.w - (compactWidth - 25) - 24) < 0.001,
+    "Negative letter spacing also changes the West anchor");
 fontOptions = {fontFamily:'"My Cards", monospace', suitFontFamily:"My Symbols", labelFontFamily:"My Labels"};
 fontDoc = xmlParse(parser.exportSvg(shortDeal, fontOptions));
 check(fontDoc.svg.xmlAttributes["font-family"] == fontOptions.fontFamily, "Escaped configurable card family");
