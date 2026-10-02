@@ -63,6 +63,41 @@ if (structKeyExists(bracketData, "notes") && bracketData.notes.len() == 2) {
 tags = bridge.parseTaggedText('[Auction "N"] 1C [1] [Note] [Note unquoted] [1 "invalid"] P [Note "1:Strong club"]');
 check(tags.len() == 2 && tags[1].text == '1C [1] [Note] [Note unquoted] [1 "invalid"] P', "Invalid PBN headers remain in the preceding record text");
 
+// Auction seats may be omitted when the Dealer tag supplies the opening seat.
+for (auctionTag in ['[auction]', '[Auction]', '[ Auction ]', '[Auction ""]']) {
+    source = '[Dealer "S"] [Vulnerable "EW"] [Deal "S:aq2.t72.a53.aj74 kt765.q95.7.9862 j843.akj.k82.kq5 9.8643.qjt964.t3"] ' & auctionTag & ' 1nt p 4c p 4nt p 6nt ap';
+    data = bridge.parsePBN(source);
+    check(structKeyExists(data, "auction"), "#auctionTag# creates an auction record");
+    check(data.dealer == "S", "#auctionTag# preserves the Dealer tag");
+    if (structKeyExists(data, "auction")) {
+        check(data.auction.len() == 8 && data.auction[1].bid == "1nt", "#auctionTag# retains all calls");
+        html = bridge.displayAuction(data, {"style":"0_4"});
+        document = markdown.coldsoupObj.Jsoup.parse(html);
+        check(findNoCase("1", document.select("tbody tr").first().select("td").first().text()) == 1, "#auctionTag# starts the auction in South's column");
+    }
+}
+for (seat in ["W", "N", "E"]) {
+    data = bridge.parsePBN('[Dealer "#seat#"] [auction] 1C P P P');
+    if (structKeyExists(data, "auction")) {
+        html = bridge.displayAuction(data, {"style":"0_4"});
+        document = markdown.coldsoupObj.Jsoup.parse(html);
+        cells = document.select("tbody tr").first().select("td");
+        offset = arrayFind(["S", "W", "N", "E"], seat) - 1;
+        check(cells.get(javacast("int", offset)).text() == "1♣", "Bare auction starts in Dealer #seat#'s column");
+    } else {
+        check(false, "Bare auction is parsed for Dealer #seat#");
+    }
+}
+data = bridge.parsePBN('[Dealer "S"] [Auction "E"] 1C P P P');
+check(data.dealer == "E", "Explicit auction seat still overrides Dealer");
+data = bridge.parsePBN('[auction] 1C [1] P P P [Note "1:Strong club"]');
+check(structKeyExists(data, "auction"), "Bare auction works without a Dealer tag");
+if (structKeyExists(data, "auction")) {
+    html = bridge.displayAuction(data, {"style":"0_4"});
+    check(data.dealer == "s", "Auction without either seat defaults to South");
+    check(data.auction.len() == 4 && data.notes.len() == 1, "Bare auctions retain bracket annotations and notes");
+}
+
 single = bridge.parsePBN('[Auction "S"]
 1NT =1= P P P
 [Note "1:15-17"]');

@@ -626,8 +626,9 @@ component {
 	        ch = mid(arguments.input, i, 1);
 
 	        // Only a complete PBN header starts a record; auction markers such
-	        // as [1] must remain in the text passed to parseAuction.
-	        if (!inTag && ch == "[" && reFind('\[\s*[A-Za-z][A-Za-z0-9_]*\s+"[^"]*"\s*\]', arguments.input, i) == i) {
+	        // as [1] must remain in the text passed to parseAuction. Bare Auction
+	        // headers are also supported, taking their seat from the Dealer tag.
+	        if (!inTag && ch == "[" && reFindNoCase('\[\s*(?:[A-Za-z][A-Za-z0-9_]*\s+"[^"]*"|Auction)\s*\]', arguments.input, i) == i) {
 	            // Save previous tag before starting new one
 	            if (len(currentKey)) {
 	                result.append( {
