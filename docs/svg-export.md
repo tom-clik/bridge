@@ -99,9 +99,43 @@ collide when several diagrams share a page. Inline SVGs can be customized using
 host CSS targeting the `bridge-svg-*` classes; image elements use the embedded
 styles. Avoid broad host rules that override SVG text styling.
 
-Generic monospace/sans-serif fonts keep files independent of web fonts. Install
-fonts with bridge suit glyphs (for example DejaVu Sans) on conversion machines.
-Exact glyph metrics can vary by renderer and installed fonts.
+### Configurable fonts
+
+Set `fontFamily`, `suitFontFamily`, and `labelFontFamily` in `exportSvg` options.
+They accept SVG font-family names or comma-separated fallback lists. Defaults are
+`DejaVu Sans Mono, monospace`, `DejaVu Sans, sans-serif`, and `sans-serif`, respectively.
+Font names are XML-escaped and attached as presentation attributes, so different
+inline diagrams can use different font families without stylesheet collisions.
+
+```cfml
+svg = parser.exportSvg(pbnText, {
+    fontFamily: "My Card Font, monospace",
+    suitFontFamily: "My Symbol Font, sans-serif",
+    labelFontFamily: "My Label Font, sans-serif"
+});
+fileWrite(svgPath, svg, "utf-8");
+svgToPng(svgPath=svgPath, pngPath=pngPath, fontFiles=[
+    expandPath("/fonts/MyCardFont.ttf"),
+    expandPath("/fonts/MySymbolFont.ttf"),
+    expandPath("/fonts/MyLabelFont.ttf")
+]);
+```
+
+The converter's optional `fontFiles` array accepts TrueType files readable by Java
+(`Font.createFont`). Configure the example's `fontFiles` variable or pass paths
+to the helper. Use each font's **internal family name** in the export options,
+which may differ from its filename. The helper registers supplied fonts with Java
+and provides explicit `@font-face` sources to Batik via a temporary user stylesheet.
+This also makes new fonts available after Batik has cached its installed-font list.
+The temporary stylesheet is removed after conversion; supplied font files are
+unchanged. Missing or invalid font files raise an error rather than being ignored.
+
+Without supplied files, fonts must be installed on the conversion machine. A
+missing font falls back according to the SVG family list; generic `monospace` may
+resolve to Courier New on Windows. Use a monospace card font with ordinary metrics
+for the exporter's conservative width estimates. Font files supplied to the PNG
+converter are not embedded in SVGs: browsers need the selected fonts installed or
+provided separately by the host page. Exact glyph metrics can vary by renderer.
 
 ## PNG conversion
 
@@ -117,12 +151,11 @@ an opaque white background.
 ### Apache Batik (CFML)
 
 `testing/svg_convert.cfm` uses Apache Batik's `PNGTranscoder` directly through Java.
-Install the Apache Batik binary distribution's runtime JARs and dependencies on
-your CFML server's Java classpath, or configure them through your application's
-`this.javaSettings.loadPaths`, then restart/reload the application as required.
-Batik's `batik-all` JAR alone is not sufficient: include XML Graphics Commons,
-XML APIs Extensions, and the distribution's supporting dependencies. Do not add
-these JARs to source control. This example was tested with Batik 1.19.
+Each Batik `createObject("java", ..., batikSettings)` call receives Lucee Maven
+settings for `org.apache.xmlgraphics:batik-transcoder:1.19` and
+`org.apache.xmlgraphics:batik-codec:1.19`. Lucee downloads these artifacts and their
+transitive dependencies. Use a Lucee version supporting Maven Java settings and
+allow its Maven repository access; manually installing JARs is not required.
 
 Run `testing/svg_convert.cfm` to convert `testing/svg_test.svg` to
 `testing/_output/output.png`. The helper accepts an optional target pixel width:
@@ -133,8 +166,7 @@ svgToPng(svgPath, pngPath, 1200); // 1200 pixels wide, preserving aspect ratio
 ```
 
 The destination directory must already exist and be writable. Batik consumes the
-embedded stylesheet and needs suitable installed fonts, but no ImageMagick or
-external process. Conversion errors propagate to the caller; PNG bytes are
+embedded stylesheet and uses installed or supplied fonts, with no external process. Conversion errors propagate to the caller; PNG bytes are
 buffered before writing so failed transcoding does not replace an existing file.
 Only pass trusted SVG files: Batik may resolve resources referenced by an SVG.
 
@@ -145,7 +177,7 @@ deal output; `testing/svg_inline.svg` shows a long single hand.
 `testing/svg_test.html` displays both as independent images.
 Run `testing/functions/testSvgExport.cfm` in the same CFML setup as the existing
 parser tests; it returns JSON with assertion counts and failures.
-With Batik installed, `testing/functions/testSvgConversion.cfm` additionally
+With Maven access, `testing/functions/testSvgConversion.cfm` additionally
 checks PNG dimensions, scaling, transparency, paths containing spaces, and failure
 handling. It regenerates the example PNG in `testing/_output`.
 

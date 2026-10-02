@@ -149,13 +149,15 @@ component {
 	 * Export a standalone SVG hand or deal (PBN or direction-prefixed deal text).
 	 * Options: deal (visible seats, default NESW), rose (true), monochrome (false),
 	 * title, fontSize, letterSpacing, wordSpacing, rowSpacing, suitGap, handGap,
-	 * columnGap and padding. Returns XML; callers choose where to save it.
+	 * columnGap, padding, fontFamily, suitFontFamily and labelFontFamily.
+	 * Returns XML; callers choose where to save it.
 	 * Auctions and PBN metadata are not rendered by this diagram exporter.
 	 */
 	public string function exportSvg(required string text, struct options={}) localmode=true {
 		settings = {deal:"nesw", rose:true, monochrome:false, title:"Bridge diagram",
 			fontSize:14, letterSpacing:0, wordSpacing:0, rowSpacing:20,
-			suitGap:24, handGap:24, columnGap:12, padding:12};
+			suitGap:24, handGap:24, columnGap:12, padding:12,
+			fontFamily:"DejaVu Sans Mono, monospace", suitFontFamily:"DejaVu Sans, sans-serif", labelFontFamily:"sans-serif"};
 		for (key in arguments.options) {
 			if (!structKeyExists(settings, key))
 				throw(type="bridge.svg", message="Unknown SVG option: " & key);
@@ -165,6 +167,11 @@ component {
 			|| !isSimpleValue(settings.title) || !isSimpleValue(settings.deal)
 			|| !reFindNoCase("^[nesw]+$", settings.deal))
 			throw(type="bridge.svg", message="Invalid SVG options");
+
+		for (key in ["fontFamily","suitFontFamily","labelFontFamily"]) {
+			if (!isSimpleValue(settings[key]) || !len(trim(settings[key])) || reFind("[\x00-\x1F\x7F]", settings[key]))
+				throw(type="bridge.svg", message="Invalid SVG font family: " & key);
+		}
 
 		// Plain finite numbers only: these values are serialized into SVG attributes.
 		for (key in ["fontSize","letterSpacing","wordSpacing","rowSpacing","suitGap","handGap","columnGap","padding"]) {
@@ -252,7 +259,7 @@ component {
 		css = fileRead(getDirectoryFromPath(getCurrentTemplatePath()) & "assets/css/bridge_svg.css", "utf-8");
 		classes = "bridge-svg" & (settings.monochrome ? " bridge-svg-mono" : "");
 		parts = ['<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="' & classes
-			& '" font-size="' & settings.fontSize & '" letter-spacing="' & settings.letterSpacing
+			& '" font-family="' & xmlFormat(settings.fontFamily) & '" font-size="' & settings.fontSize & '" letter-spacing="' & settings.letterSpacing
 			& '" word-spacing="' & settings.wordSpacing & '" width="' & width & '" height="' & height & '" viewBox="0 0 ' & width & ' ' & height & '" role="img">',
 			'<title>' & xmlFormat(settings.title) & '</title>', '<style type="text/css">' & css & '</style>'];
 		positions = {n:[centerX, topBaseline], w:[westX, topBaseline + bandStep],
@@ -264,7 +271,7 @@ component {
 			parts.append('<g class="bridge-svg-hand bridge-svg-' & seat & '">');
 			for (suit in ["s","h","d","c"]) {
 				parts.append('<text class="bridge-svg-holding" x="' & x & '" y="' & y & '"><tspan class="bridge-svg-suit bridge-svg-'
-					& suit & '">' & getSymbol(suit) & '</tspan><tspan x="' & (x + settings.suitGap) & '">'
+					& suit & '" font-family="' & xmlFormat(settings.suitFontFamily) & '">' & getSymbol(suit) & '</tspan><tspan x="' & (x + settings.suitGap) & '">'
 					& xmlFormat(suitFormat(hands[seat][suit])) & '</tspan></text>');
 				y += settings.rowSpacing;
 			}
@@ -276,7 +283,7 @@ component {
 			parts.append('<rect class="bridge-svg-table" x="' & (cx - 28) & '" y="' & (cy - 28) & '" width="56" height="56"/>');
 			labels = {n:[cx,cy-14], s:[cx,cy+22], w:[cx-18,cy+4], e:[cx+18,cy+4]};
 			for (seat in ["n","s","w","e"])
-				parts.append('<text class="bridge-svg-label" x="' & labels[seat][1] & '" y="' & labels[seat][2] & '">' & ucase(seat) & '</text>');
+				parts.append('<text class="bridge-svg-label" font-family="' & xmlFormat(settings.labelFontFamily) & '" x="' & labels[seat][1] & '" y="' & labels[seat][2] & '">' & ucase(seat) & '</text>');
 		}
 		parts.append('</svg>');
 		return arrayToList(parts, chr(10));

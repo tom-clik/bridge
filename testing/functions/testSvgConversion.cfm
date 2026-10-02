@@ -1,4 +1,4 @@
-<!--- Requires the Batik runtime dependencies described in docs/svg-export.md. --->
+<!--- Requires Maven-enabled Lucee; dependencies resolve through svg_convert.cfm. --->
 <cfinclude template="../svg_convert.cfm">
 <cfscript>
 failures = [];
@@ -25,6 +25,16 @@ try {
     check(png.getWidth() == 1200, "Requested pixel width");
     expectedHeight = 1200 * val(svg.svg.xmlAttributes.height) / val(svg.svg.xmlAttributes.width);
     check(abs(png.getHeight() - expectedHeight) <= 1, "Aspect ratio preserved");
+    rejected = false;
+    try { svgToPng(svgPath=source, pngPath=target, fontFiles=[folder & "missing.ttf"]); }
+    catch (FileNotFoundException e) { rejected = true; }
+    check(rejected, "Missing requested font raises an error");
+    badFont = folder & "invalid.ttf";
+    fileWrite(badFont, "not a font");
+    rejected = false;
+    try { svgToPng(svgPath=source, pngPath=target, fontFiles=[badFont]); }
+    catch (any e) { rejected = true; }
+    check(rejected, "Invalid font file raises an error");
     previous = hash(fileReadBinary(target));
     fileWrite(source, "<svg>malformed", "utf-8");
     rejected = false;

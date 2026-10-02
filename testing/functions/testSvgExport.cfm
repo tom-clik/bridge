@@ -114,6 +114,18 @@ check(customLayout.e - customLayout.rose - customLayout.roseWidth == 60, "Custom
 noRose = layout(longWest, {rose:false});
 check(noRose.n == westLayout.n && noRose.w == westLayout.w && noRose.e == westLayout.e,
     "Hiding rose preserves horizontal alignment");
+fontOptions = {fontFamily:'"My Cards", monospace', suitFontFamily:"My Symbols", labelFontFamily:"My Labels"};
+fontDoc = xmlParse(parser.exportSvg(shortDeal, fontOptions));
+check(fontDoc.svg.xmlAttributes["font-family"] == fontOptions.fontFamily, "Escaped configurable card family");
+check(xmlSearch(fontDoc, "//*[local-name()='tspan' and @font-family='My Symbols']").len() == 16,
+    "Configurable suit family on every suit");
+check(xmlSearch(fontDoc, "//*[local-name()='text' and @font-family='My Labels']").len() == 4,
+    "Configurable label family");
+for (badOptions in [{fontFamily:""}, {suitFontFamily:[]}, {labelFontFamily:chr(10)}]) {
+    rejected = false;
+    try { parser.exportSvg(shortDeal, badOptions); } catch (bridge.svg e) { rejected = true; }
+    check(rejected, "Reject invalid font family");
+}
 cfcontent(type="application/json; charset=utf-8",reset=true);
 writeOutput(serializeJSON({passed:failures.isEmpty(),checks:checks,failures:failures}));
 </cfscript>
