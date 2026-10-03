@@ -140,7 +140,7 @@ The number in either case can only be 0, 2, or 4 with 2 always being N and S.
 
 ### The info attribute
 
-The info attribute is a shortcut to turn on "scoring", "vulnerable", and "dealer".
+The info attribute is a shortcut to turn on "vulnerable", and "dealer".
 
 ```<bridge style='2_4' info='1'>```
 

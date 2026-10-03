@@ -8,6 +8,35 @@ component implements="coldlight.plugins.pluginInterface" {
 		return this;
 	}
 
+	/** Capture IDs from a full HTML string or Jsoup Document without mutating it. */
+	public array function saveImages(required any document, required array images,
+		required string outputFolder, required string baseUrl, required string nodePath,
+		struct options={}) localmode=true {
+		if (!arrayLen(arguments.images)) return [];
+		if (!reFindNoCase("^(https?://|file:/)", arguments.baseUrl))
+			throw(type="bridge.images", message="baseUrl must be an absolute HTTP(S) or file URL");
+		html = isSimpleValue(arguments.document) ? arguments.document : arguments.document.outerHtml();
+		node = variables.jsoupObj.Jsoup.parse(html);
+		// This snapshot lives in a temporary directory. Resolve resources at the original location.
+		node.select("base").remove();
+		node.head().prependElement("base").attr("href", arguments.baseUrl);
+		node.outputSettings().charset("UTF-8");
+		converter = new coldlight.converters.htmlToPng(arguments.nodePath);
+		return converter.convert(node.outerHtml(), arguments.images, arguments.outputFolder, arguments.options);
+	}
+
+	/** Build a capture batch; data-image marks tables, while IDs determine filenames. */
+	public array function tableImageBatch(required any node, string folder="images") localmode=true {
+		batch = [];
+		for (table in arguments.node.select("table[data-image]")) {
+			id = table.id();
+			if (!reFind("^[A-Za-z0-9_-]+$", id))
+				throw(type="bridge.images", message="Image tables need a filename-safe ID (letters, digits, underscores or hyphens)", detail=id);
+			batch.append({"id":id, "filename":(len(arguments.folder) ? arguments.folder & "/" : "") & "table-" & id & ".png"});
+		}
+		return batch;
+	}
+
 	public string function preProcess(required string text) localmode=true {
 
 		/**

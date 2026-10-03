@@ -359,6 +359,15 @@ div.bridgeauction table.auction td, div.bridgeauction table.auction th {
 	padding:2px 4px 4px 4px;
 }
 
+div.bridgeauction table.auction th {
+	padding:3px 4px;
+}
+
+div.bridgeauction table.auction th > div {
+	display: block;
+	top:0;
+}
+
 div.bridgeauction table.auction td {
 	padding-left:24px;
 }

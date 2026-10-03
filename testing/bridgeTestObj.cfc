@@ -64,4 +64,12 @@ component extends="bridge.bridge_parser" {
 		return super.parseTaggedText(argumentCollection = arguments);
 	}
 
+	public string function getResultStr(required numeric result, required string contract) localmode=true {
+		return super.getResultStr(argumentCollection = arguments);
+	}
+
+	public string function replaceSuitLetter(required string text) {
+		return super.replaceSuitLetter(argumentCollection = arguments);
+	}
+
 }

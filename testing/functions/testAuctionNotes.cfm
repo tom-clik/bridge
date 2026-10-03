@@ -103,6 +103,26 @@ single = bridge.parsePBN('[Auction "S"]
 [Note "1:15-17"]');
 check(single.notes.len() == 1 && single.notes[1].note == "15-17", "Single-note auctions still work");
 
+// Line endings and trailing spaces must not insert calls or shift their seats.
+for (lineEnding in [chr(10), chr(13) & chr(10), chr(13)]) {
+    source = '[Dealer "E"] [auction]' & lineEnding
+        & '1s p p 2s ' & lineEnding
+        & 'p  2nt p 3c' & lineEnding
+        & 'p  3nt ap';
+    data = bridge.parsePBN(source);
+    check(data.auction.len() == 11, "Trailing spaces with line ending #asc(left(lineEnding, 1))#/#len(lineEnding)# retain exactly eleven calls");
+    html = bridge.displayAuction(data, {"style":"0_4"});
+    document = markdown.coldsoupObj.Jsoup.parse(html);
+    cells = document.select("table.auction tbody td");
+    expected = ["", "", "", "1♠", "P", "P", "2♠", "P", "2NT", "P", "3♣", "P", "3NT", "All pass", "", ""];
+    check(cells.size() == expected.len(), "Auction has four complete display rows");
+    if (cells.size() == expected.len()) {
+        for (cellIndex = 1; cellIndex <= expected.len(); cellIndex++) {
+            check(trim(cells.get(javacast("int", cellIndex - 1)).text()) == expected[cellIndex], "Auction cell #cellIndex# retains its call and seat for line ending #asc(left(lineEnding, 1))#/#len(lineEnding)#");
+        }
+    }
+}
+
 cfcontent(type="application/json; charset=utf-8", reset=true);
 writeOutput(serializeJSON({"passed":failures.isEmpty(), "checks":checks, "failures":failures}));
 </cfscript>
