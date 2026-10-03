@@ -21,6 +21,14 @@ component {
 		variables.playerList = ['n','e','w','s'];
 		this.debug = arguments.debug;
 
+		// These can be updated by the user to e.g. "None Vuln."
+		this.vulnerability_values = {
+			"none" = "Love All",
+			"all" = "Game all",
+			"ns" = "NS Vulnerable",
+			"ns" = "EW Vulnerable"
+		};
+
 		return this;
 	}
 
@@ -32,58 +40,66 @@ component {
 		}
 	}
 
-    /** Only bridge call sequences should lose their inline code semantics. */
-    public boolean function isInlineAuction(required string text) {
-        return reFindNoCase("^\s*\(?\s*(?:[1-7](?:NT|[SHDC♠♥♦♣])|PASS|P|DBL|RDBL|XX|X|\?)\s*\)?(?:[\s,;:\-–—→]+\(?\s*(?:[1-7](?:NT|[SHDC♠♥♦♣])|PASS|P|DBL|RDBL|XX|X|\?)\s*\)?)*\s*$", arguments.text) > 0;
-    }
+	/** Only bridge call sequences should lose their inline code semantics. */
+	public boolean function isInlineAuction(required string text) {
+		return reFindNoCase("^\s*\(?\s*(?:[1-7](?:NT|[SHDC♠♥♦♣])|PASS|P|DBL|RDBL|XX|X|\?)\s*\)?(?:[\s,;:\-–—→]+\(?\s*(?:[1-7](?:NT|[SHDC♠♥♦♣])|PASS|P|DBL|RDBL|XX|X|\?)\s*\)?)*\s*$", arguments.text) > 0;
+	}
 
-    /** Process text and inline auctions without reserializing the caller's document. */
-    public string function formatInlineHtml(required string html) localmode=true {
-        // Match complete literal blocks before individual tags. Quoted > stays inside a tag.
-        tagPattern = "<(?:[^>""']|""[^""]*""|'[^']*')*>";
-        expression = "<!--.*?-->|<(pre|script|style|textarea|title|bridge)\b[^>]*>.*?</\1\s*>|<code\b[^>]*>.*?</code\s*>|" & tagPattern;
-        patternClass = createObject("java", "java.util.regex.Pattern");
-        matcher = patternClass.compile(expression, patternClass.CASE_INSENSITIVE + patternClass.DOTALL).matcher(arguments.html);
-        result = [];
-        cursor = 1;
-        suitSpanDepth = 0;
-        while (matcher.find()) {
-            start = matcher.start() + 1;
-            if (start > cursor) {
-                text = mid(arguments.html, cursor, start - cursor);
-                result.append(suitSpanDepth ? text : wrapSuitText(text));
-            }
-            tag = matcher.group();
-            if (reFindNoCase("^<code\b", tag)) {
-                document = variables.jsoupObj.Jsoup.parse(tag);
-                code = document.select("code").first();
-                if (isInlineAuction(code.text())) {
-                    formatInlineAuctions(document);
-                    wrapSuitSymbols(document);
-                    tag = document.body().html();
-                }
-            } else if (reFindNoCase("^<span\b", tag)) {
-                if (suitSpanDepth || reFindNoCase("\bclass\s*=\s*['""][^'""]*\bsuit\b", tag)) suitSpanDepth++;
-            } else if (reFindNoCase("^</span\s*>", tag) && suitSpanDepth) {
-                suitSpanDepth--;
-            }
-            result.append(tag);
-            cursor = matcher.end() + 1;
-        }
-        if (cursor <= len(arguments.html)) {
-            text = mid(arguments.html, cursor, len(arguments.html) - cursor + 1);
-            result.append(suitSpanDepth ? text : wrapSuitText(text));
-        }
-        return result.toList("");
-    }
+	/** Process text and inline auctions without reserializing the caller's document. */
+	public string function formatInlineHtml(required string html) localmode=true {
+		// Match complete literal blocks before individual tags. Quoted > stays inside a tag.
+		tagPattern = "<(?:[^>""']|""[^""]*""|'[^']*')*>";
+		expression = "<!--.*?-->|<(pre|script|style|textarea|title|bridge)\b[^>]*>.*?</\1\s*>|<code\b[^>]*>.*?</code\s*>|" & tagPattern;
+		patternClass = createObject("java", "java.util.regex.Pattern");
+		matcher = patternClass.compile(expression, patternClass.CASE_INSENSITIVE + patternClass.DOTALL).matcher(arguments.html);
+		result = [];
+		cursor = 1;
+		suitSpanDepth = 0;
+		while (matcher.find()) {
+			start = matcher.start() + 1;
+			if (start > cursor) {
+				text = mid(arguments.html, cursor, start - cursor);
+				result.append(suitSpanDepth ? text : wrapSuitText(text));
+			}
+			tag = matcher.group();
+			if (reFindNoCase("^<code\b", tag)) {
+				document = variables.jsoupObj.Jsoup.parse(tag);
+				code = document.select("code").first();
+				if (isInlineAuction(code.text())) {
+					formatInlineAuctions(document);
+					wrapSuitSymbols(document);
+					tag = document.body().html();
+				}
+			} else if (reFindNoCase("^<span\b", tag)) {
+				if (suitSpanDepth || reFindNoCase("\bclass\s*=\s*['""][^'""]*\bsuit\b", tag)) suitSpanDepth++;
+			} else if (reFindNoCase("^</span\s*>", tag) && suitSpanDepth) {
+				suitSpanDepth--;
+			}
+			result.append(tag);
+			cursor = matcher.end() + 1;
+		}
+		if (cursor <= len(arguments.html)) {
+			text = mid(arguments.html, cursor, len(arguments.html) - cursor + 1);
+			result.append(suitSpanDepth ? text : wrapSuitText(text));
+		}
+		return result.toList("");
+	}
 
-    private string function wrapSuitText(required string text) localmode=true {
-        suits = {"♠":"s", "♥":"h", "♦":"d", "♣":"c"};
-        for (symbol in suits) {
-            arguments.text = replace(arguments.text, symbol, "<span class='suit " & suits[symbol] & "'>" & symbol & "</span>", "all");
-        }
-        return arguments.text;
-    }
+	private string function replaceSuitLetter(required string text) localmode=true {
+		match = reMatch("(S|H|D|C)", arguments.text);
+		for (suit in match) {
+			arguments.text = replace(arguments.text, suit, "<span class='suit #suit#'>" & getSymbol(suit) & "</span>");
+		}
+		return arguments.text;
+	}
+
+	private string function wrapSuitText(required string text) localmode=true {
+		suits = {"♠":"s", "♥":"h", "♦":"d", "♣":"c"};
+		for (symbol in suits) {
+			arguments.text = replace(arguments.text, symbol, "<span class='suit " & suits[symbol] & "'>" & symbol & "</span>", "all");
+		}
+		return arguments.text;
+	}
 
 	/** Wrap visible suit characters without interpreting escaped text as HTML. */
 	public void function wrapSuitSymbols(required node) localmode=true {
@@ -308,93 +324,93 @@ component {
 	 */
 	public array function svgToPng(required any svgPath, required string outputFolder,
 		required string stylesheetPath, string outputName="", numeric width=0, array fontFiles=[]) localmode=true {
-        if (!isArray(arguments.svgPath) && !isSimpleValue(arguments.svgPath))
-            throw(type="bridge.svgConversion", message="svgPath must be a filename or an array of filenames");
-        sources = isArray(arguments.svgPath) ? arguments.svgPath : [arguments.svgPath];
-        if (!directoryExists(arguments.outputFolder))
-            throw(type="bridge.svgConversion", message="Output folder does not exist: " & arguments.outputFolder);
-        if (!fileExists(arguments.stylesheetPath))
-            throw(type="FileNotFoundException", message="Stylesheet not found: " & arguments.stylesheetPath);
-        if (arguments.width < 0)
-            throw(type="bridge.svgConversion", message="PNG width must be zero (intrinsic size) or positive");
-        if (len(arguments.outputName) && arrayLen(sources) != 1)
-            throw(type="bridge.svgConversion", message="outputName is only supported for a single input; batches use input filenames");
-        if (reFind("[/\\:]", arguments.outputName) || listFind(".,..", arguments.outputName))
-            throw(type="bridge.svgConversion", message="outputName must be a filename, not a path");
+		if (!isArray(arguments.svgPath) && !isSimpleValue(arguments.svgPath))
+			throw(type="bridge.svgConversion", message="svgPath must be a filename or an array of filenames");
+		sources = isArray(arguments.svgPath) ? arguments.svgPath : [arguments.svgPath];
+		if (!directoryExists(arguments.outputFolder))
+			throw(type="bridge.svgConversion", message="Output folder does not exist: " & arguments.outputFolder);
+		if (!fileExists(arguments.stylesheetPath))
+			throw(type="FileNotFoundException", message="Stylesheet not found: " & arguments.stylesheetPath);
+		if (arguments.width < 0)
+			throw(type="bridge.svgConversion", message="PNG width must be zero (intrinsic size) or positive");
+		if (len(arguments.outputName) && arrayLen(sources) != 1)
+			throw(type="bridge.svgConversion", message="outputName is only supported for a single input; batches use input filenames");
+		if (reFind("[/\\:]", arguments.outputName) || listFind(".,..", arguments.outputName))
+			throw(type="bridge.svgConversion", message="outputName must be a filename, not a path");
 
-        // Preflight the complete batch so a missing input or duplicate basename
-        // cannot leave surprising partial output or overwrite another batch item.
-        outputs = [];
-        seen = {};
-        folder = getCanonicalPath(arguments.outputFolder);
-        if (right(folder, 1) != "/" && right(folder, 1) != chr(92)) folder &= "/";
-        for (source in sources) {
-            if (!isSimpleValue(source) || !len(source) || !fileExists(source))
-                throw(type="FileNotFoundException", message="SVG input file is missing or invalid");
-            name = len(arguments.outputName) ? arguments.outputName : reReplace(getFileFromPath(source), "\.[^.]*$", "") & ".png";
-            if (!reFindNoCase("\.png$", name)) name &= ".png";
-            target = folder & name;
-            if (structKeyExists(seen, target))
-                throw(type="bridge.svgConversion", message="Duplicate PNG output name in batch: " & name);
-            if (compareNoCase(getCanonicalPath(source), getCanonicalPath(target)) == 0)
-                throw(type="bridge.svgConversion", message="PNG output must not replace its SVG input");
-            seen[target] = true;
-            outputs.append(target);
-        }
-        if (!arrayLen(sources)) return outputs;
+		// Preflight the complete batch so a missing input or duplicate basename
+		// cannot leave surprising partial output or overwrite another batch item.
+		outputs = [];
+		seen = {};
+		folder = getCanonicalPath(arguments.outputFolder);
+		if (right(folder, 1) != "/" && right(folder, 1) != chr(92)) folder &= "/";
+		for (source in sources) {
+			if (!isSimpleValue(source) || !len(source) || !fileExists(source))
+				throw(type="FileNotFoundException", message="SVG input file is missing or invalid");
+			name = len(arguments.outputName) ? arguments.outputName : reReplace(getFileFromPath(source), "\.[^.]*$", "") & ".png";
+			if (!reFindNoCase("\.png$", name)) name &= ".png";
+			target = folder & name;
+			if (structKeyExists(seen, target))
+				throw(type="bridge.svgConversion", message="Duplicate PNG output name in batch: " & name);
+			if (compareNoCase(getCanonicalPath(source), getCanonicalPath(target)) == 0)
+				throw(type="bridge.svgConversion", message="PNG output must not replace its SVG input");
+			seen[target] = true;
+			outputs.append(target);
+		}
+		if (!arrayLen(sources)) return outputs;
 
-        batikSettings = {
-            maven: [
-                {groupId:"org.apache.xmlgraphics", artifactId:"batik-transcoder", version:"1.19"},
-                {groupId:"org.apache.xmlgraphics", artifactId:"batik-codec", version:"1.19"}
-            ]
-        };
+		batikSettings = {
+			maven: [
+				{groupId:"org.apache.xmlgraphics", artifactId:"batik-transcoder", version:"1.19"},
+				{groupId:"org.apache.xmlgraphics", artifactId:"batik-codec", version:"1.19"}
+			]
+		};
 
-        fileClass = createObject("java", "java.io.File");
+		fileClass = createObject("java", "java.io.File");
 
-        // Register fonts before Batik initializes its font resolver. Registration is
-        // JVM-wide; CSS must use the font's internal family name, not its filename.
-        graphics = createObject("java", "java.awt.GraphicsEnvironment").getLocalGraphicsEnvironment();
-        fontClass = createObject("java", "java.awt.Font");
-        fontRules = [];
-        for (fontPath in arguments.fontFiles) {
-            if (!fileExists(fontPath))
-                throw(type="FileNotFoundException", message="Font file not found: " & fontPath);
-            fontFile = fileClass.init(fontPath);
-            font = fontClass.createFont(fontClass.TRUETYPE_FONT, fontFile);
-            graphics.registerFont(font);
-            family = replace(replace(font.getFamily(), chr(92), chr(92) & chr(92), "all"), '"', chr(92) & '"', "all");
-            fontURI = replace(fontFile.toURI().toASCIIString(), '"', "%22", "all");
-            fontRules.append('@font-face { font-family: "' & family & '"; src: url("' & fontURI & '"); }');
-        }
+		// Register fonts before Batik initializes its font resolver. Registration is
+		// JVM-wide; CSS must use the font's internal family name, not its filename.
+		graphics = createObject("java", "java.awt.GraphicsEnvironment").getLocalGraphicsEnvironment();
+		fontClass = createObject("java", "java.awt.Font");
+		fontRules = [];
+		for (fontPath in arguments.fontFiles) {
+			if (!fileExists(fontPath))
+				throw(type="FileNotFoundException", message="Font file not found: " & fontPath);
+			fontFile = fileClass.init(fontPath);
+			font = fontClass.createFont(fontClass.TRUETYPE_FONT, fontFile);
+			graphics.registerFont(font);
+			family = replace(replace(font.getFamily(), chr(92), chr(92) & chr(92), "all"), '"', chr(92) & '"', "all");
+			fontURI = replace(fontFile.toURI().toASCIIString(), '"', "%22", "all");
+			fontRules.append('@font-face { font-family: "' & family & '"; src: url("' & fontURI & '"); }');
+		}
 
-        transcoder = createObject("java", "org.apache.batik.transcoder.image.PNGTranscoder", batikSettings).init();
-        inputClass = createObject("java", "org.apache.batik.transcoder.TranscoderInput", batikSettings);
-        bytes = createObject("java", "java.io.ByteArrayOutputStream").init();
-        output = createObject("java", "org.apache.batik.transcoder.TranscoderOutput", batikSettings).init(bytes);
-        if (arguments.width > 0) {
-            transcoder.addTranscodingHint(transcoder.KEY_WIDTH,
-                createObject("java", "java.lang.Float").valueOf(javacast("string", arguments.width)));
-        }
-        stylesheet = "";
-        try {
-            stylesheet = getTempFile(getTempDirectory(), "bridge-batik-styles", ".css");
-            fileWrite(stylesheet, fileRead(arguments.stylesheetPath, "utf-8") & chr(10) & arrayToList(fontRules, chr(10)), "utf-8");
-            transcoder.addTranscodingHint(transcoder.KEY_USER_STYLESHEET_URI, fileClass.init(stylesheet).toURI().toString());
-            for (i=1; i <= arrayLen(sources); i++) {
-                // Only the input wrapper is file-specific. Reuse the transcoder,
-                // output wrapper and buffer, discarding prior bytes before each file.
-                bytes.reset();
-                input = inputClass.init(fileClass.init(sources[i]).toURI().toString());
-                transcoder.transcode(input, output);
-                fileWrite(outputs[i], bytes.toByteArray());
-            }
-        } finally {
-            bytes.close();
-            if (len(stylesheet) && fileExists(stylesheet)) fileDelete(stylesheet);
-        }
-        return outputs;
-    }
+		transcoder = createObject("java", "org.apache.batik.transcoder.image.PNGTranscoder", batikSettings).init();
+		inputClass = createObject("java", "org.apache.batik.transcoder.TranscoderInput", batikSettings);
+		bytes = createObject("java", "java.io.ByteArrayOutputStream").init();
+		output = createObject("java", "org.apache.batik.transcoder.TranscoderOutput", batikSettings).init(bytes);
+		if (arguments.width > 0) {
+			transcoder.addTranscodingHint(transcoder.KEY_WIDTH,
+				createObject("java", "java.lang.Float").valueOf(javacast("string", arguments.width)));
+		}
+		stylesheet = "";
+		try {
+			stylesheet = getTempFile(getTempDirectory(), "bridge-batik-styles", ".css");
+			fileWrite(stylesheet, fileRead(arguments.stylesheetPath, "utf-8") & chr(10) & arrayToList(fontRules, chr(10)), "utf-8");
+			transcoder.addTranscodingHint(transcoder.KEY_USER_STYLESHEET_URI, fileClass.init(stylesheet).toURI().toString());
+			for (i=1; i <= arrayLen(sources); i++) {
+				// Only the input wrapper is file-specific. Reuse the transcoder,
+				// output wrapper and buffer, discarding prior bytes before each file.
+				bytes.reset();
+				input = inputClass.init(fileClass.init(sources[i]).toURI().toString());
+				transcoder.transcode(input, output);
+				fileWrite(outputs[i], bytes.toByteArray());
+			}
+		} finally {
+			bytes.close();
+			if (len(stylesheet) && fileExists(stylesheet)) fileDelete(stylesheet);
+		}
+		return outputs;
+	}
 
 	/** Normalize empty suits before reusing the existing hand parser. */
 	private struct function svgParseHand(required string text) localmode=true {
@@ -450,9 +466,9 @@ component {
 	 * 
 	 */
 	private function parseStyleShortcuts(required struct styles) localmode=true {
-		
+		// compass tags allow for nsew variations to show only those hands
 		compassTags = ["deal","auction"];
-
+		
 		if ( StructKeyExists(arguments.styles,'style') ) {
 			style = ListToArray( arguments.styles['style'], "_" );
 			
@@ -476,7 +492,7 @@ component {
 				arguments.styles['info'] = style[3];
 			}
 			else {
-				arguments.styles['info'] = '0';
+				StructAppend(arguments.styles, {"info"=false}, false);
 			}
 
 			// #convert number to string value. 2 = ns, 4=nsew
@@ -506,23 +522,17 @@ component {
 			StructAppend(arguments.styles, {"info"=false}, false);
 		}
 
-		// # info = boolean for basic tags, 'all' for full tags
-		// # remember these will only show if the tag is defined.
-		
-		// list of all options
-		options = ['dealer'=1,'scoring'=1,'vulnerable'=1,'lead'=0,'contract'=0,'result'=0,'par'=0,'players'=0,'positions'=0];
+		// list of all options : 1 = truned on by info=1 shortcut
+		options = ['dealer'=1,'scoring'=0,'vulnerable'=1,'lead'=0,'contract'=0,'result'=0,'par'=0,'players'=0,'positions'=0];
 
-		// create list of tags to turn on if not defined explicitly
-		tagList = [];
-		
 		// go through each option and check if it was supplied explicitly or by using info short cut
-		loop collection=options key="tag" value="basic" {
+		loop collection=options key="tag" value="infoOn" {
 			
 			if ( StructKeyExists(arguments.styles, tag)) {
 				arguments.styles[tag] = isValid("boolean",arguments.styles[tag]) ?  ( arguments.styles[tag] && true ) : 0;
 			}
 			else {
-				arguments.styles[tag] = (arguments.styles['info'] eq "all" OR arguments.styles['info'] && basic );
+				arguments.styles[tag] = (arguments.styles['info'] eq "all" OR arguments.styles['info'] && infoOn );
 			}
 		}
 
@@ -605,112 +615,112 @@ component {
 	 */
 	
 	array function parseTaggedText( required string input) {
-	    var result = [];
-	    var lenInput = len(arguments.input);
+		var result = [];
+		var lenInput = len(arguments.input);
 
-	    var i = 1;
-	    var ch = "";
+		var i = 1;
+		var ch = "";
 
-	    var inTag = false;
-	    var inQuote = false;
-	    var readingTagName = false;
-	    var readingAttribute = false;
+		var inTag = false;
+		var inQuote = false;
+		var readingTagName = false;
+		var readingAttribute = false;
 
-	    var currentTagName = "";
-	    var currentAttributes = "";
-	    var currentText = "";
+		var currentTagName = "";
+		var currentAttributes = "";
+		var currentText = "";
 
-	    var currentKey = "";
+		var currentKey = "";
 
-	    for (i = 1; i <= lenInput; i++) {
-	        ch = mid(arguments.input, i, 1);
+		for (i = 1; i <= lenInput; i++) {
+			ch = mid(arguments.input, i, 1);
 
-	        // Only a complete PBN header starts a record; auction markers such
-	        // as [1] must remain in the text passed to parseAuction. Bare Auction
-	        // headers are also supported, taking their seat from the Dealer tag.
-	        if (!inTag && ch == "[" && reFindNoCase('\[\s*(?:[A-Za-z][A-Za-z0-9_]*\s+"[^"]*"|Auction)\s*\]', arguments.input, i) == i) {
-	            // Save previous tag before starting new one
-	            if (len(currentKey)) {
-	                result.append( {
-	                    tag = currentKey,
-	                    attributes = currentAttributes,
-	                    text = trim(currentText)
-	                });
-	            }
+			// Only a complete PBN header starts a record; auction markers such
+			// as [1] must remain in the text passed to parseAuction. Bare Auction
+			// headers are also supported, taking their seat from the Dealer tag.
+			if (!inTag && ch == "[" && reFindNoCase('\[\s*(?:[A-Za-z][A-Za-z0-9_]*\s+"[^"]*"|Auction)\s*\]', arguments.input, i) == i) {
+				// Save previous tag before starting new one
+				if (len(currentKey)) {
+					result.append( {
+						tag = currentKey,
+						attributes = currentAttributes,
+						text = trim(currentText)
+					});
+				}
 
-	            // Reset state for new tag
-	            inTag = true;
-	            inQuote = false;
-	            readingTagName = true;
-	            readingAttribute = false;
+				// Reset state for new tag
+				inTag = true;
+				inQuote = false;
+				readingTagName = true;
+				readingAttribute = false;
 
-	            currentTagName = "";
-	            currentAttributes = "";
-	            currentText = "";
-	            currentKey = "";
+				currentTagName = "";
+				currentAttributes = "";
+				currentText = "";
+				currentKey = "";
 
-	            continue;
-	        }
+				continue;
+			}
 
-	        if (inTag) {
-	            // End of tag
-	            if (!inQuote && ch == "]") {
-	                inTag = false;
-	                readingTagName = false;
-	                readingAttribute = false;
+			if (inTag) {
+				// End of tag
+				if (!inQuote && ch == "]") {
+					inTag = false;
+					readingTagName = false;
+					readingAttribute = false;
 
-	                currentKey = lCase( currentTagName );
-	                continue;
-	            }
+					currentKey = lCase( currentTagName );
+					continue;
+				}
 
-	            // Quote handling for attributes
-	            if (ch == '"') {
-	                inQuote = !inQuote;
+				// Quote handling for attributes
+				if (ch == '"') {
+					inQuote = !inQuote;
 
-	                if (inQuote) {
-	                    readingTagName = false;
-	                    readingAttribute = true;
-	                }
-	                else {
-	                    readingAttribute = false;
-	                }
+					if (inQuote) {
+						readingTagName = false;
+						readingAttribute = true;
+					}
+					else {
+						readingAttribute = false;
+					}
 
-	                continue;
-	            }
+					continue;
+				}
 
-	            // Build tag name until first space or quote
-	            if (readingTagName) {
-	                if (ch != " " && ch != chr(9) && ch != chr(10) && ch != chr(13)) {
-	                    currentTagName &= ch;
-	                }
-	                continue;
-	            }
+				// Build tag name until first space or quote
+				if (readingTagName) {
+					if (ch != " " && ch != chr(9) && ch != chr(10) && ch != chr(13)) {
+						currentTagName &= ch;
+					}
+					continue;
+				}
 
-	            // Build attribute text only while inside quotes
-	            if (readingAttribute && inQuote) {
-	                currentAttributes &= ch;
-	                continue;
-	            }
+				// Build attribute text only while inside quotes
+				if (readingAttribute && inQuote) {
+					currentAttributes &= ch;
+					continue;
+				}
 
-	            continue;
-	        }
+				continue;
+			}
 
-	        // Outside tag, this belongs to current tag's text
-	        if (len(currentKey)) {
-	            currentText &= ch;
-	        }
-	    }
+			// Outside tag, this belongs to current tag's text
+			if (len(currentKey)) {
+				currentText &= ch;
+			}
+		}
 
-	    // Save the final tag
-	    if (len(currentKey)) {
-	        result.append( {
-	            tag = currentKey,
-	            attributes = currentAttributes,
-	            text = trim(currentText)
-	        });
-	    }
+		// Save the final tag
+		if (len(currentKey)) {
+			result.append( {
+				tag = currentKey,
+				attributes = currentAttributes,
+				text = trim(currentText)
+			});
+		}
 
-	    return result;
+		return result;
 	}
 
 	private function getScoringStr(str) {
@@ -737,17 +747,17 @@ component {
 
 	*/
 	private function getVulnerableStr(str) {
-	   
+		
 		var retStr = false;
 
 		if (arguments.str == "None" or arguments.str == "Love") {
-			retStr = "Love All";
+			retStr = this.vulnerability_values["none"];
 		}
 		else if (arguments.str == "All" or arguments.str == "Both"){
-			retStr = "Game all";
+			retStr = this.vulnerability_values["none"];
 		}
 		else {
-			retStr = arguments.str & ' vulnerable';
+			retStr = this.vulnerability_values[arguments.str] ? : "invalid vulnerability";
 		}
 
 		return retStr;
@@ -785,7 +795,8 @@ component {
 		var local = {};
 		var i = false;
 
-		local.bids = listToArray(arguments.auctionStr, " #chr(9)##chr(10)#");
+		// Treat both halves of Windows line endings as separators, including after trailing spaces.
+		local.bids = listToArray(arguments.auctionStr, " #chr(9)##chr(10)##chr(13)#");
 		
 		for (i=1;i lte ArrayLen(local.bids);i+=1) {
 			entry = Trim(local.bids[i]);
@@ -967,19 +978,27 @@ component {
 			
 			for (option in options) {
 				
-				if (StructKeyExists(styleAtts,option) AND styleAtts[option] neq 0 and StructKeyExists(pbndata,option)) {
-					if (option == 'dealer') {
-						label = "Dealer " & positionLabel(pbndata[option]);
+				if (StructKeyExists(styleAtts,option) AND styleAtts[option] and StructKeyExists(pbndata,option)) {
+					switch (option) {
+						case "dealer":
+							label = "Dealer " & positionLabel(pbndata[option]);
+						break;
+						case "scoring":
+							label = getScoringStr(pbndata[option]);
+						break;
+						case "vulnerable":
+							label = getVulnerableStr(pbndata[option]);
+						break;
+						case "result":
+							label = titleCase(option) & ' ' & getResultStr(pbndata[option]);
+						break;
+						case "lead":case "contract":
+							label = titleCase(option) & ' ' & replaceSuitLetter( pbndata[option] );
+							break;
+						default:
+							label = titleCase(option) & ' ' & pbndata[option];
 					}
-					else if (option == 'scoring') {
-						label = getScoringStr(pbndata[option]);
-					}
-					else if (option == 'vulnerable') {
-						label = getVulnerableStr(pbndata[option]);
-					}
-					else {
-						label = option & ' ' & pbndata[option];
-					}
+					
 					retStr &= "<p class='" & option & "'>" & label & "</p>";
 				}
 			}
@@ -1027,6 +1046,23 @@ component {
 		return retStr;
 	}
 
+
+	function titleCase(textStr) {
+		 return Ucase(Left(arguments.textStr,1)) & LCase(Right(arguments.textStr,Len(arguments.textStr)-1));
+	}
+
+	private string function getResultStr(required numeric result, required string contract) localmode=true {
+		num = val(arguments.contract) + 6;
+		delta = arguments.result - num;
+		if (delta eq 0) {
+			delta = "=";	
+		} 
+		else if (delta gt 0) {
+			delta = "+" & delta;	
+		}
+		
+		return delta;
+	}
 	/**
 	 * Deduce the type from the text either simple hand, simple suit combo, or full deal for anything else
 	 *
@@ -1316,13 +1352,13 @@ component {
 					
 				}
 			} 
-            catch (any e) {
-                local.extendedinfo = {"error"=e,pbndata=arguments.pbndata};
-                throw(
-                    extendedinfo = SerializeJSON(local.extendedinfo),
-                    message      = "Can't display auction:" & e.message
-                );
-            }
+			catch (any e) {
+				local.extendedinfo = {"error"=e,pbndata=arguments.pbndata};
+				throw(
+					extendedinfo = SerializeJSON(local.extendedinfo),
+					message      = "Can't display auction:" & e.message
+				);
+			}
 			retStr &= "#cr##tab##tab##tab#</tr>#cr#";
 		}
 
