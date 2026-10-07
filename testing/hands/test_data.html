@@ -1,0 +1,72 @@
+<bridge id='simplesuitcombo' title="Simple suit combo">
+	kq7 - A3 - 
+</bridge>
+
+<bridge id="wholesuit" type="suit" title="Whole suit (start with W)">
+W:542 kq7 jt986 A3
+</bridge>
+
+<bridge id="hand_vertical" vertical id="Hand Vertical">
+	akq78.5634.kq7.7
+</bridge>
+
+<bridge id="hand" title="basic hand">akq78.5634.kq7.7</bridge>
+
+<bridge id="hand2" class="standalone" title="Simple hand">-.akq78.5634.kq75</bridge>
+
+<bridge id="hand1_4" file="hands/test_hand2.pbn" info="yes" style="4_4" lead="yes" title="External file"></bridge> 
+
+<bridge id="combo" title="Simple hand">
+AKQJ1098765432.-.-.-
+</bridge>
+
+<bridge style="0_2" north="Partner" south="You" title="Auction only">
+[auction]
+2♣ - 2♦ =1= - 
+2♠ - 3♠ =2= - 
+?
+[note "1:waiting"]
+[note "2:positive"]	  
+</bridge>                  
+
+<bridge id="test" class="testclass" deal="S" auction="NS" title="Auction and one handnly">
+[Deal "S:JT3.9.AQ75.AT643"]
+[South "Partner"]
+[North "You"]
+[Auction "S"]
+1C P 2C
+</bridge>
+
+<bridge deal="S" id="test_S_NS" auction="NS" title="Your auction and one hand only">
+[Deal "S:JT3.9.AQ75.AT643"]
+[South "Partner"]
+[North "You"]
+[Auction "S"]
+1C P 2C
+</bridge>
+
+<bridge deal="EN" id="deal_EN" title="EN deal only"  file="hands/test_hand2.pbn">
+
+</bridge>
+
+<bridge deal="WN" id="deal_WN" title="EN deal only"  file="hands/test_hand2.pbn">
+
+</bridge>
+
+<bridge deal="S"  auction="NS" id="S_WN" title="S deal NS auction deal only"  file="hands/test_hand2.pbn">
+</bridge>
+
+<bridge deal="EW" id="auction_notes"  title="Auction notes">
+[Deal "E:AKJT9872.A9.J.K5 -.-.-.- 3.KQJ873.T98.643 -.-.-.-"]
+[Auction "E"]
+4D =1=  p 4S =2= p p
+[Note "1:shows 7+ strong spades and 8-9 tricks."]
+[Note "2:is a signoff."]
+[East "Opener"]
+[West "Responder"]
+[Dealer "N"]
+</bridge>
+
+<bridge style="4_0" id="4_0" title="4_0 short cut">
+[Deal "S:.t.5. .q9.. .kj.. .8.j."]
+</bridge>

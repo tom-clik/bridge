@@ -27,44 +27,44 @@ component implements="coldlight.plugins.pluginInterface" {
 	}
 
 	public void function verticalHandsToTables(
-	    required struct section
+		required struct section
 	   ) localmode=true {
-	    
-	    for (hand in arguments.section.node.select("div.bridge.vertical > span.bridgehand")) {
-	        // Keep the children collection so moving nodes does not change the indexes.
-            cells = hand.children();
+		
+		for (hand in arguments.section.node.select("div.bridge.vertical > span.bridgehand")) {
+			// Keep the children collection so moving nodes does not change the indexes.
+			cells = hand.children();
 
-	        // Validate the suit/cards pairs before changing the document.
-	        if (cells.size() != 8) {
-	            throw(message="Expected four suit/cards pairs.", type="bridge");
-	        }
+			// Validate the suit/cards pairs before changing the document.
+			if (cells.size() != 8) {
+				throw(message="Expected four suit/cards pairs.", type="bridge");
+			}
 
-	        for (i = 0; i < 8; i += 2) {
-	            if (
-	                !cells.get(i).is("span.suit") ||
-	                !cells.get(i + 1).is("span.cards")
-	            ) {
-	                throw(message="Expected alternating suit and cards spans.", type="bridge");
-	            }
-	        }
+			for (i = 0; i < 8; i += 2) {
+				if (
+					!cells.get(i).is("span.suit") ||
+					!cells.get(i + 1).is("span.cards")
+				) {
+					throw(message="Expected alternating suit and cards spans.", type="bridge");
+				}
+			}
 
-	        table = arguments.section.node.createElement("table");
+			table = arguments.section.node.createElement("table");
 
-	        // Preserve the hand's classes and any other attributes.
-	        table.attributes().addAll(hand.attributes());
-	        tbody = table.appendElement("tbody");
+			// Preserve the hand's classes and any other attributes.
+			table.attributes().addAll(hand.attributes());
+			tbody = table.appendElement("tbody");
 
-	        for (i = 0; i < 8; i += 2) {
-	            row = tbody.appendElement("tr");
-	            row.appendElement("td").appendChild(cells.get(i));
-	            row.appendElement("td").appendChild(cells.get(i + 1));
-	        }
+			for (i = 0; i < 8; i += 2) {
+				row = tbody.appendElement("tr");
+				row.appendElement("td").appendChild(cells.get(i));
+				row.appendElement("td").appendChild(cells.get(i + 1));
+			}
 
-	        hand.replaceWith(table);
-	    }
+			hand.replaceWith(table);
+		}
 
 	}
 
 	
-    
+	
 }

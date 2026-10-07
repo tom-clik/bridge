@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="bridge-svg" font-family="DejaVu Sans Mono, monospace" font-size="14" letter-spacing="0" word-spacing="-4" width="480.150390625" height="234.2" viewBox="0 0 480.150390625 234.2" role="img">
+<title>Bridge diagram</title>
+<g class="bridge-svg-hand bridge-svg-n">
+<text class="bridge-svg-holding" x="193.646484375" y="26"><tspan class="bridge-svg-suit bridge-svg-s" font-family="DejaVu Sans, sans-serif">♠</tspan><tspan x="206.0751953125">A 4 2</tspan></text>
+<text class="bridge-svg-holding" x="193.646484375" y="42"><tspan class="bridge-svg-suit bridge-svg-h" font-family="DejaVu Sans, sans-serif">♥</tspan><tspan x="206.0751953125">9 6 5</tspan></text>
+<text class="bridge-svg-holding" x="193.646484375" y="58"><tspan class="bridge-svg-suit bridge-svg-d" font-family="DejaVu Sans, sans-serif">♦</tspan><tspan x="206.0751953125">K 9</tspan></text>
+<text class="bridge-svg-holding" x="193.646484375" y="74"><tspan class="bridge-svg-suit bridge-svg-c" font-family="DejaVu Sans, sans-serif">♣</tspan><tspan x="206.0751953125">Q 9 7 4 2</tspan></text>
+</g>
+<g class="bridge-svg-hand bridge-svg-w">
+<text class="bridge-svg-holding" x="12" y="98"><tspan class="bridge-svg-suit bridge-svg-s" font-family="DejaVu Sans, sans-serif">♠</tspan><tspan x="24.4287109375">K Q 9 8 3 4 5 5 5 5 5 6 7</tspan></text>
+<text class="bridge-svg-holding" x="12" y="114"><tspan class="bridge-svg-suit bridge-svg-h" font-family="DejaVu Sans, sans-serif">♥</tspan><tspan x="24.4287109375">4 3 2</tspan></text>
+<text class="bridge-svg-holding" x="12" y="130"><tspan class="bridge-svg-suit bridge-svg-d" font-family="DejaVu Sans, sans-serif">♦</tspan><tspan x="24.4287109375">Q 7 6</tspan></text>
+<text class="bridge-svg-holding" x="12" y="146"><tspan class="bridge-svg-suit bridge-svg-c" font-family="DejaVu Sans, sans-serif">♣</tspan><tspan x="24.4287109375">J 6</tspan></text>
+</g>
+<g class="bridge-svg-hand bridge-svg-e">
+<text class="bridge-svg-holding" x="293.00390625" y="98"><tspan class="bridge-svg-suit bridge-svg-s" font-family="DejaVu Sans, sans-serif">♠</tspan><tspan x="305.4326171875">7 6</tspan></text>
+<text class="bridge-svg-holding" x="293.00390625" y="114"><tspan class="bridge-svg-suit bridge-svg-h" font-family="DejaVu Sans, sans-serif">♥</tspan><tspan x="305.4326171875">J 10 8 7</tspan></text>
+<text class="bridge-svg-holding" x="293.00390625" y="130"><tspan class="bridge-svg-suit bridge-svg-d" font-family="DejaVu Sans, sans-serif">♦</tspan><tspan x="305.4326171875">10 8 5 3 2</tspan></text>
+<text class="bridge-svg-holding" x="293.00390625" y="146"><tspan class="bridge-svg-suit bridge-svg-c" font-family="DejaVu Sans, sans-serif">♣</tspan><tspan x="305.4326171875">A K</tspan></text>
+</g>
+<g class="bridge-svg-hand bridge-svg-s">
+<text class="bridge-svg-holding" x="193.646484375" y="170"><tspan class="bridge-svg-suit bridge-svg-s" font-family="DejaVu Sans, sans-serif">♠</tspan><tspan x="206.0751953125">J 10 5</tspan></text>
+<text class="bridge-svg-holding" x="193.646484375" y="186"><tspan class="bridge-svg-suit bridge-svg-h" font-family="DejaVu Sans, sans-serif">♥</tspan><tspan x="206.0751953125">A K Q</tspan></text>
+<text class="bridge-svg-holding" x="193.646484375" y="202"><tspan class="bridge-svg-suit bridge-svg-d" font-family="DejaVu Sans, sans-serif">♦</tspan><tspan x="206.0751953125">A J 4</tspan></text>
+<text class="bridge-svg-holding" x="193.646484375" y="218"><tspan class="bridge-svg-suit bridge-svg-c" font-family="DejaVu Sans, sans-serif">♣</tspan><tspan x="206.0751953125">10 8 5 3</tspan></text>
+</g>
+<rect class="bridge-svg-table" x="212.0751953125" y="87" width="56" height="56"/>
+<text class="bridge-svg-label" font-family="sans-serif" x="240.0751953125" y="101">N</text>
+<text class="bridge-svg-label" font-family="sans-serif" x="240.0751953125" y="137">S</text>
+<text class="bridge-svg-label" font-family="sans-serif" x="222.0751953125" y="119">W</text>
+<text class="bridge-svg-label" font-family="sans-serif" x="258.0751953125" y="119">E</text>
+</svg>

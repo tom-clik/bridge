@@ -21,6 +21,8 @@
 	--suit-row-gap: 2px;
 	--rose-width: 50px;
 	--rose-margin: 10px;
+	--info-position: auto auto auto -120px;
+	--info-width: 120px;
 }
 
 /* Backtick auctions are prose, not source-code panels. Allow long sequences to wrap. */
@@ -162,22 +164,20 @@ div.bridgefull {
 /* Information shown to left of full deal */
 div.bridgeinfo {
 	position:absolute;
-	left:-120px;
-	width:120px;
+	inset:var(--info-position);
+	min-width:var(--info-width);
 	/* leave this  in -- its essential to stop crazy  margin outside
 	 box behaviour*/
 	padding:0.1px;
 }
 
 @media print {
-	div.bridgeinfo {
-		left:-80pt;
-		width:80px;
-	}
+	--info-position: auto auto auto -80px;
+	--info-width: 80px;
 }
 
-div.bridgeinfo p {
-	margin:0;
+div.bridgeinfo > div {
+	margin:0 0 2px 0;
 }
 
 /* deal diagram */
@@ -357,6 +357,15 @@ div.bridgeauction table.auction td, div.bridgeauction table.auction th {
 	width: calc( var(--hand-width) /4 );
 	line-height: 1;
 	padding:2px 4px 4px 4px;
+}
+
+div.bridgeauction table.auction th {
+	padding:3px 4px;
+}
+
+div.bridgeauction table.auction th > div {
+	display: block;
+	top:0;
 }
 
 div.bridgeauction table.auction td {

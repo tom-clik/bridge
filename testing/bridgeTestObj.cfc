@@ -4,7 +4,7 @@ component extends="bridge.bridge_parser" {
 		this.flexmark = new markdown.testing.flexmarkTestObj();
 		super.init(jsoupObj = this.flexmark.coldsoupObj);
 		local.dir = getCanonicalPath(getDirectoryFromPath( getCurrentTemplatePath() )) ;
-		this.styles = "<style>" & fileRead( local.dir  & "../../clikpage/_assets/css/reset.css");
+		this.styles = "<style>" & fileRead( local.dir  & "../../clik/assets/css/reset.css");
 		this.styles &= fileRead( local.dir  & "../assets/css/bridge_styles.css") & "</style>";
 		
 
@@ -62,6 +62,14 @@ component extends="bridge.bridge_parser" {
 
 	public function parseTaggedText(required string input) {
 		return super.parseTaggedText(argumentCollection = arguments);
+	}
+
+	public string function getResultStr(required numeric result, required string contract) localmode=true {
+		return super.getResultStr(argumentCollection = arguments);
+	}
+
+	public string function replaceSuitLetter(required string text) {
+		return super.replaceSuitLetter(argumentCollection = arguments);
 	}
 
 }
