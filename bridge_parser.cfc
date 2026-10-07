@@ -952,10 +952,10 @@ component {
         for (i = 1; i <= lenInput; i++) {
             ch = mid(arguments.input, i, 1);
 
-            // Only a complete PBN header starts a record; auction markers such
-            // as [1] must remain in the text passed to parseAuction. Bare Auction
-            // headers are also supported, taking their seat from the Dealer tag.
-            if (!inTag && ch == "[" && reFindNoCase('\[\s*(?:[A-Za-z][A-Za-z0-9_]*\s+"[^"]*"|Auction)\s*\]', arguments.input, i) == i) {
+            // Only complete PBN headers or supported bare extensions start a record;
+            // auction markers such as [1] remain in the text passed to parseAuction.
+            // Bare Auction headers take their seat from the Dealer tag.
+            if (!inTag && ch == "[" && reFindNoCase('\[\s*(?:[A-Za-z][A-Za-z0-9_]*\s+"(?:\\.|[^"\\])*"|Auction|play_ordered)\s*\]', arguments.input, i) == i) {
                 // Save previous tag before starting new one
                 if (len(currentKey)) {
                     result.append( {
@@ -980,6 +980,11 @@ component {
             }
 
             if (inTag) {
+                if (inQuote && ch == '\' && i < lenInput && (mid(arguments.input, i + 1, 1) == '"' || mid(arguments.input, i + 1, 1) == '\')) {
+                    currentAttributes &= mid(arguments.input, i + 1, 1);
+                    i++;
+                    continue;
+                }
                 // End of tag
                 if (!inQuote && ch == "]") {
                     inTag = false;
