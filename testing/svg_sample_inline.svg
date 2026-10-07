@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="bridge-svg" font-family="DejaVu Sans Mono, monospace" font-size="14" letter-spacing="0" word-spacing="-4" width="198.7177734375" height="90.2" viewBox="0 0 198.7177734375 90.2" role="img">
+<title>Simple hand</title>
+<g class="bridge-svg-hand bridge-svg-n">
+<text class="bridge-svg-holding" x="12" y="26"><tspan class="bridge-svg-suit bridge-svg-s" font-family="DejaVu Sans, sans-serif">♠</tspan><tspan x="28.4287109375">A K Q J 10 9 8 7 6 5 4 3</tspan></text>
+<text class="bridge-svg-holding" x="12" y="42"><tspan class="bridge-svg-suit bridge-svg-h" font-family="DejaVu Sans, sans-serif">♥</tspan><tspan x="28.4287109375">-</tspan></text>
+<text class="bridge-svg-holding" x="12" y="58"><tspan class="bridge-svg-suit bridge-svg-d" font-family="DejaVu Sans, sans-serif">♦</tspan><tspan x="28.4287109375">-</tspan></text>
+<text class="bridge-svg-holding" x="12" y="74"><tspan class="bridge-svg-suit bridge-svg-c" font-family="DejaVu Sans, sans-serif">♣</tspan><tspan x="28.4287109375">-</tspan></text>
+</g>
+</svg>
