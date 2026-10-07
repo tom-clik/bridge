@@ -999,7 +999,7 @@ component {
 							label = titleCase(option) & ' ' & pbndata[option];
 					}
 					
-					retStr &= "<p class='" & option & "'>" & label & "</p>";
+					retStr &= "<div class='" & option & "'>" & label & "</div>";
 				}
 			}
 
