@@ -1,5 +1,9 @@
 # Local Sublime Text session state
 *.sublime-workspace
 
+# Machine-specific Handviewer save destinations
+/testing/handviewer_folders.json
+
+# Generated sample images
 /testing/svg_sample.svg
 /testing/svg_sample_inline.svg

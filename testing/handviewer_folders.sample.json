@@ -1,0 +1,12 @@
+[
+    {
+        "id": "hands",
+        "label": "Saved bridge hands",
+        "path": "C:/Bridge/Hands"
+    },
+    {
+        "id": "records",
+        "label": "Session records",
+        "path": "C:/Bridge/Records"
+    }
+]
