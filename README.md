@@ -19,14 +19,15 @@ hand = parser.parsePBN(pbnText);
 ```
 
 `parseHandviewer(input, resolveURLs=true)` accepts a Handviewer URL or query
-(including `lin=...`), raw LIN, or a URL returning LIN. Short links and relative
+(including `lin=...`), raw or URL-encoded LIN, or a URL returning LIN. Short links and relative
 redirects are resolved with a bounded redirect count and HTTP timeout.
 Network requests, including every redirect hop, are restricted to the exact
 hosts `bridgebase.com`, `www.bridgebase.com`, `tinyurl.com` and `www.tinyurl.com`
 on standard HTTP/HTTPS ports, without URL credentials. Other hosts can only
 be used as pasted links containing hand parameters (no request is made). Set
 `resolveURLs=false` for offline parsing or untrusted URLs. Query values are
-URL-decoded once; raw LIN is already decoded text.
+URL-decoded once; raw LIN is already decoded text. Vulnerability `0` and `o`
+both import as `None`.
 
 The shared hand structure contains `deal[position][suit]`, `auction` entries
 with `bid` and note markers, `notes` entries with `marker` and `note`, metadata

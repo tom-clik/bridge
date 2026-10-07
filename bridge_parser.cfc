@@ -30,6 +30,8 @@ component {
      */
     public struct function parseHandviewer(required string input, boolean resolveURLs=true) localmode=true {
         source = trim(arguments.input);
+        // A pasted LIN payload may be URL-encoded without a surrounding lin= query.
+        if (reFindNoCase("^[a-z]{2}%7c", source)) return parseLIN(urlDecode(source));
         for (hop = 0; hop <= 5; hop++) {
             if (reFindNoCase("^[a-z]{2}\|", source)) return parseLIN(source);
             query = source;
@@ -168,7 +170,7 @@ component {
     }
 
     private string function importVulnerability(required string value) localmode=true {
-        mapping = {o:"None", "-":"None", none:"None", b:"Both", both:"Both", all:"Both", n:"NS", ns:"NS", e:"EW", ew:"EW"};
+        mapping = {o:"None", "0":"None", "-":"None", none:"None", b:"Both", both:"Both", all:"Both", n:"NS", ns:"NS", e:"EW", ew:"EW"};
         if (!mapping.keyExists(trim(value))) throw(type="bridge", message="Invalid vulnerability: " & value);
         return mapping[trim(value)];
     }

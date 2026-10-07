@@ -26,6 +26,19 @@ check(serializeJSON(roundtrip.play_ordered) == serializeJSON(hand.play_ordered),
 check(roundtrip.notes[1].note == hand.notes[1].note, 'Explanations roundtrip');
 check(roundtrip.deal.n.s == hand.deal.n.s && roundtrip.deal.s.h == hand.deal.s.h, 'Deal roundtrips');
 check(roundtrip.auction[1].note == '1', 'Auction note markers roundtrip');
+encoded = trim(fileRead(expandPath('../../handviewer_samples/zero-vulnerability.txt')));
+for (source in [encoded, urlDecode(encoded), 'lin=' & encoded, 'https://www.bridgebase.com/tools/handviewer.html?lin=' & encoded]) {
+    hand = parser.parseHandviewer(source, false);
+    check(hand.vulnerable == 'None' && hand.dealer == 'N' && hand.board == '1', 'Zero vulnerability sample metadata');
+    check(hand.contract == '3NT' && hand.declarer == 'S', 'Zero vulnerability sample contract');
+    check(hand.auction.len() == 14 && hand.notes.len() == 5, 'Zero vulnerability sample auction and notes');
+    check(hand.play_ordered.len() == 52 && hand.play_ordered[1] == 'C2' && hand.play_ordered[52] == 'H4', 'Zero vulnerability sample complete play');
+    roundtrip = parser.parsePBN(parser.exportPBN(hand));
+    check(roundtrip.vulnerable == 'None' && serializeJSON(roundtrip.play_ordered) == serializeJSON(hand.play_ordered), 'Zero vulnerability and play survive PBN roundtrip');
+}
+check(parser.parseHandviewer('d=n&v=0&a=pppp', false).vulnerable == 'None', 'Direct Handviewer zero vulnerability');
+check(parser.parseHandviewer('mb%7C1S%7Can%7C50%2525%20%2B%7C', false).notes[1].note == '50%25 +', 'Bare encoded LIN is decoded exactly once');
+rejects('d=n&v=invalid&a=pppp', 'Unknown vulnerability still rejected');
 lin = 'st||pn|South,,North,East|zz|mb|md|1SAKQJT98765432HDC,SH AKQJT98765432 DC,SHD AKQJT98765432 C|sv|o|mb|1S|mb|P|mb|2S|an|Support|mb|P|mb|4S|mb|X|mb|P|mb|P|mb|P|pc|C2|pg||pc|C3|';
 hand = parser.parseLIN(lin);
 check(hand.west == '' && hand.north == 'North', 'Empty player names do not shift positions');
