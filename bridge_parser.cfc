@@ -677,9 +677,9 @@ component {
 	    for (i = 1; i <= lenInput; i++) {
 	        ch = mid(arguments.input, i, 1);
 
-	            // Only a complete PBN header (or our bare play_ordered extension) starts a record; auction markers such
+	            // Only a complete PBN header (or a supported bare header) starts a record; auction markers such
 	        // as [1] must remain in the text passed to parseAuction.
-	        if (!inTag && ch == "[" && reFindNoCase('\[\s*(?:[A-Za-z][A-Za-z0-9_]*\s+"(?:\\.|[^"\\])*"|play_ordered)\s*\]', arguments.input, i) == i) {
+	        if (!inTag && ch == "[" && reFindNoCase('\[\s*(?:[A-Za-z][A-Za-z0-9_]*\s+"(?:\\.|[^"\\])*"|auction|play_ordered)\s*\]', arguments.input, i) == i) {
 	            // Save previous tag before starting new one
 	            if (len(currentKey)) {
 	                result.append( {

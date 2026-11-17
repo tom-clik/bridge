@@ -35,7 +35,7 @@ component implements="coldlight.plugins.pluginInterface" {
 				local.extendedinfo = {"error"=e,"hand"=hand};
 				throw(
 					extendedinfo = SerializeJSON(local.extendedinfo),
-					message      = "Failed to parse bridge hand"
+					message      = "Failed to parse bridge hand:" & e.message
 				);
 			}
 			tags[count] = html;

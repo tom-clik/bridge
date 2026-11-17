@@ -63,6 +63,10 @@ if (structKeyExists(bracketData, "notes") && bracketData.notes.len() == 2) {
 tags = bridge.parseTaggedText('[Auction "N"] 1C [1] [Note] [Note unquoted] [1 "invalid"] P [Note "1:Strong club"]');
 check(tags.len() == 2 && tags[1].text == '1C [1] [Note] [Note unquoted] [1 "invalid"] P', "Invalid PBN headers remain in the preceding record text");
 
+legacy = bridge.parsePBN('[auction] 1H P 2NT P ?');
+check(structKeyExists(legacy, "auction") && legacy.auction.len() == 5 && legacy.auction[5].bid == "?", "Bare auction headers retain every call and the question-mark placeholder");
+check(!structKeyExists(legacy, "dealer"), "Bare auction headers leave the dealer unspecified");
+
 single = bridge.parsePBN('[Auction "S"]
 1NT =1= P P P
 [Note "1:15-17"]');

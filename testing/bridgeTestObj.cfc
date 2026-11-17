@@ -4,7 +4,7 @@ component extends="bridge.bridge_parser" {
 		this.flexmark = new markdown.testing.flexmarkTestObj();
 		super.init(jsoupObj = this.flexmark.coldsoupObj);
 		local.dir = getCanonicalPath(getDirectoryFromPath( getCurrentTemplatePath() )) ;
-		this.styles = "<style>" & fileRead( local.dir  & "../../clikpage/_assets/css/reset.css");
+		this.styles = "<style>" & fileRead( local.dir  & "../../clik/assets/css/reset.css");
 		this.styles &= fileRead( local.dir  & "../assets/css/bridge_styles.css") & "</style>";
 		
 
