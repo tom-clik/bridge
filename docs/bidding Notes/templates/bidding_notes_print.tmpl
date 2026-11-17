@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- ColdLight single-document template. Save the generated HTML beside index.md
+     so the publication-relative styles/ link resolves before conversion to PDF. -->
+<html lang="en-GB" class="theme-{{theme}}">
+<head>
+    <meta charset="UTF-8">
+    <title>{{title}}</title>
+    <meta name="author" content="{{author}}">
+    <meta name="description" content="{{description}}">
+
+    <link rel="stylesheet" href="{{assets_url}}/_styles/pdf/reset.css">
+    <link rel="stylesheet" href="{{assets_url}}/_styles/pdf/standard.css">
+    <link rel="stylesheet" href="{{assets_url}}/_styles/pdf/toc.css">
+    <link rel="stylesheet" href="{{assets_url}}/_styles/pdf/fractions.css">
+    <!-- Shared Bridge styles on the same local server used by assets_url. -->
+    <link rel="stylesheet" href="http://localhost:8089/bridge/assets/css/bridge_styles.css">
+    {{{styles}}}
+    <link rel="stylesheet" href="styles/bidding_notes_fonts.css">
+    <!-- Keep the print overrides last, after any publication styles. -->
+    <link rel="stylesheet" href="styles/bidding_notes_print.css">
+</head>
+<body>
+    <div id="frontmatter">
+        <div id="titlepage">
+            <p class="title">{{title}}</p>
+            <p class="author">{{author}}</p>
+        </div>
+        <div id="contents">
+            <h1>Contents</h1>
+            <div class="toc">{{{toc}}}</div>
+        </div>
+    </div>
+    <div id="content">
+        {{{body}}}
+    </div>
+</body>
+</html>

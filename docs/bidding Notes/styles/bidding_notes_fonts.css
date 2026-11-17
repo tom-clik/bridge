@@ -1,0 +1,87 @@
+/* Font registrations. Descriptor literals are required by @font-face syntax. */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 500;
+  src: url(fonts/roboto-500-normal.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Droid Sans Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: url(fonts/droid-sans-mono-400-normal.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  src: url(fonts/inter-400-normal.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  src: url(fonts/inter-700-normal.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  src: url(fonts/lora-400-italic.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 700;
+  src: url(fonts/lora-700-italic.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  src: url(fonts/lora-400-normal.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  src: url(fonts/lora-700-normal.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: normal;
+  src: url(fonts/roboto-400-normal.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: normal;
+  src: url(fonts/roboto-700-normal.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Source Sans Pro';
+  font-style: italic;
+  font-weight: 400;
+  src: url(fonts/source-sans-pro-400-italic.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Source Sans Pro';
+  font-style: italic;
+  font-weight: 700;
+  src: url(fonts/source-sans-pro-700-italic.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Source Sans Pro';
+  font-style: normal;
+  font-weight: 400;
+  src: url(fonts/source-sans-pro-400-normal.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Source Sans Pro';
+  font-style: normal;
+  font-weight: 700;
+  src: url(fonts/source-sans-pro-700-normal.ttf) format('truetype');
+}
