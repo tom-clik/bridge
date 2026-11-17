@@ -1,0 +1,255 @@
+/* Shared A4 print layout. All design values live in this configuration block. */
+:root {
+    --body-font: "Lora", Georgia, serif;
+    --heading-font: "Roboto", Arial, sans-serif;
+    --ui-font: var(--heading-font);
+    --quote-font: var(--body-font);
+    --mono-font: "Droid Sans Mono", "Cascadia Mono", monospace;
+    --auction-font: var(--body-font);
+    --inline-auction-font: var(--body-font);
+    --inline-auction-size: var(--body-size);
+    --inline-auction-weight: var(--weight-normal);
+    --inline-auction-style: var(--style-normal);
+    --inline-auction-ink: var(--ink);
+    --inline-auction-background: var(--clear-fill);
+    --inline-auction-padding: var(--zero);
+    --card-font: var(--mono-font);
+    --symbol-font: "DejaVu Sans", "Segoe UI Symbol", sans-serif;
+    --weight-normal: 400;
+    --weight-heading: 500;
+    --weight-bold: 700;
+    --header-variant: small-caps;
+    --style-normal: normal;
+    --style-italic: italic;
+    --body-size: 11pt;
+    --title-size: 21pt;
+    --h1-size: 16pt;
+    --h2-size: 13pt;
+    --h3-size: 11.5pt;
+    --h4-size: 11pt;
+    --ui-size: 8.5pt;
+    --auction-size: 10pt;
+    --notes-size: 9.5pt;
+    --card-size: 0.95em;
+    --symbol-size: 1em;
+    --body-leading: 1.25;
+    --heading-leading: 1.15;
+    --table-leading: 1.2;
+    --notes-leading: 1.25;
+    --suit-line-height: 1.25;
+    --suit-row-gap: 1pt;
+    --configured-card-spacing: -1.5pt;
+    --configured-card-spacing-inline: -1.5pt;
+    --ink: #171717;
+    --muted-ink: #555555;
+    --paper: #ffffff;
+    --header-rule: #d2d2d2;
+    --table-rule: #dddddd;
+    --table-head: #f1f1f1;
+    --red-suit: #9b2020;
+    --compass-rule: #888888;
+    --compass-fill: #f1f1f1;
+    --clear-fill: transparent;
+    --rule-width: 0.4pt;
+    --page-size: A4 portrait;
+    --page-width: 210mm;
+    --page-top: 23mm;
+    --page-side: 20mm;
+    --page-bottom: 18mm;
+    --header-body-gap: 6mm;
+    --header-rule-gap: 3mm;
+    --footer-gap: 4mm;
+    --front-gap: 7mm;
+    --title-gap: 3mm;
+    --heading-top: 4mm;
+    --heading-bottom: 2mm;
+    --paragraph-gap: 2mm;
+    --list-gap: 0.7mm;
+    --list-indent: 5mm;
+    --table-top: 2mm;
+    --table-bottom: 3mm;
+    --row-pad-y: 0.65mm;
+    --row-pad-x: 2mm;
+    --bid-width: 18mm;
+    --definition-gap: 0.6mm;
+    --auction-width: 82mm;
+    --auction-narrow-width: 43mm;
+    --auction-cell-pad-x: 2mm;
+    --auction-cell-height: 5mm;
+    --zero: 0;
+    --full-width: 100%;
+}
+/* Retain the earlier comparison theme; Roboto/Lora is the default. */
+:root.theme-inter-source {
+    --body-font: "Source Sans Pro", Arial, sans-serif;
+    --heading-font: "Inter", Arial, sans-serif;
+}
+
+@page {
+    size: var(--page-size);
+    margin: var(--page-top) var(--page-side) var(--page-bottom);
+    padding-top: var(--header-body-gap);
+    font-family: var(--ui-font);
+    font-size: var(--ui-size);
+    font-weight: var(--weight-normal);
+    font-style: var(--style-normal);
+    color: var(--muted-ink);
+    @top-left { content: none; }
+    @top-right { content: none; }
+    @bottom-center { content: counter(page); padding-top: var(--footer-gap); }
+}
+@page:left {
+    @top-left {
+        content: string(chapter-title, first);
+        font-variant: var(--header-variant);
+        width: var(--full-width);
+        text-align: left;
+        vertical-align: bottom;
+        padding-bottom: var(--header-rule-gap);
+        border-bottom: var(--rule-width) solid var(--header-rule);
+    }
+}
+@page:right {
+    @top-right {
+        content: string(chapter-title, first);
+        font-variant: var(--header-variant);
+        width: var(--full-width);
+        text-align: right;
+        vertical-align: bottom;
+        padding-bottom: var(--header-rule-gap);
+        border-bottom: var(--rule-width) solid var(--header-rule);
+    }
+}
+/* Prince 16: each chapter heading starts a page group. */
+@page chapters:first-of-group:left {
+    @top-left { content: string(book-title); }
+}
+@page chapters:first-of-group:right {
+    @top-right { content: string(book-title); }
+}
+@page:first {
+    @top-left { content: none; border: none; }
+    @top-right { content: none; border: none; }
+}
+html, body { height: auto; }
+body {
+    font-family: var(--body-font);
+    font-size: var(--body-size);
+    font-weight: var(--weight-normal);
+    font-style: var(--style-normal);
+    line-height: var(--body-leading);
+    color: var(--ink);
+    background: var(--paper);
+    text-align: left;
+}
+b, strong { font-weight: var(--weight-bold); }
+i, em { font-style: var(--style-italic); }
+#frontmatter, #titlepage { margin-bottom: var(--front-gap); }
+#titlepage .title {
+    font-family: var(--heading-font);
+    font-size: var(--title-size);
+    font-weight: var(--weight-heading);
+    line-height: var(--heading-leading);
+    margin: var(--zero) var(--zero) var(--title-gap);
+}
+#titlepage .author { color: var(--muted-ink); margin: var(--zero); }
+#contents h1 { font-size: var(--h2-size); margin: var(--zero) var(--zero) var(--heading-bottom); }
+.toc .toc1 { text-transform: none; font-size: var(--body-size); margin: var(--zero) var(--zero) var(--paragraph-gap); }
+.toc a { color: var(--ink); }
+section, div.section { page-break-before: auto; break-before: auto; }
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--heading-font);
+    font-weight: var(--weight-heading);
+    font-style: var(--style-normal);
+    text-align: left;
+    text-transform: none;
+    letter-spacing: normal;
+    line-height: var(--heading-leading);
+    page-break-after: avoid;
+    break-after: avoid;
+    page-break-inside: avoid;
+}
+h1 { font-size: var(--h1-size); margin: var(--zero) var(--zero) var(--heading-bottom); }
+h2 { font-size: var(--h2-size); margin: var(--heading-top) var(--zero) var(--heading-bottom); }
+h3 { font-size: var(--h3-size); margin: var(--heading-top) var(--zero) var(--heading-bottom); }
+h4, h5, h6 { font-size: var(--h4-size); margin: var(--heading-top) var(--zero) var(--heading-bottom); }
+#content { page: chapters; }
+#content h1 { page-break-before: always; break-before: page; -prince-page-group: start; string-set: chapter-title content(); }
+#frontmatter h1 { page-break-before: auto; break-before: auto; string-set: none; }
+p { margin: var(--zero) var(--zero) var(--paragraph-gap); text-indent: var(--zero); orphans: 3; widows: 3; }
+h2 + p, h3 + p, p:has(+ table), p:has(+ dl) { page-break-after: avoid; break-after: avoid; }
+ul, ol { margin: var(--zero) var(--zero) var(--paragraph-gap); padding-left: var(--list-indent); }
+li { margin-bottom: var(--list-gap); }
+a { color: var(--ink); }
+blockquote { font-family: var(--body-font); font-weight: var(--weight-normal); margin: var(--paragraph-gap) var(--list-indent); }
+hr { border: none; border-top: var(--rule-width) solid var(--table-rule); margin: var(--heading-top) var(--zero); height: var(--zero); }
+img { max-width: var(--full-width); height: auto; }
+table { border-collapse: collapse; page-break-inside: auto; break-inside: auto; }
+table.styled { width: var(--full-width); margin: var(--table-top) var(--zero) var(--table-bottom); border-top: var(--rule-width) solid var(--table-rule); page-break-inside: avoid; break-inside: avoid; }
+table.styled th, table.styled td {
+    padding: var(--row-pad-y) var(--row-pad-x);
+    border-bottom: var(--rule-width) solid var(--table-rule);
+    text-align: left;
+    vertical-align: top;
+    line-height: var(--table-leading);
+}
+table.styled th { font-family: var(--ui-font); font-weight: var(--weight-bold); background: var(--table-head); }
+table.styled tbody tr:nth-of-type(odd) { background: var(--clear-fill); }
+table.styled th:first-child, table.styled td:first-child { width: var(--bid-width); white-space: nowrap; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; break-inside: avoid; }
+dl {
+    display: grid;
+    grid-template-columns: var(--bid-width) minmax(0, 1fr);
+    gap: var(--zero);
+    margin: var(--table-top) var(--zero) var(--table-bottom);
+    page-break-inside: auto;
+    break-inside: auto;
+}
+dt { grid-column: 1; font-weight: var(--weight-bold); page-break-after: avoid; break-after: avoid; }
+dd { grid-column: 2; margin: var(--zero) var(--zero) var(--definition-gap); page-break-inside: avoid; break-inside: avoid; }
+dl.tableish { border-top: var(--rule-width) solid var(--table-rule); }
+dl.tableish dt, dl.tableish dd {
+    margin: var(--zero);
+    padding: var(--row-pad-y) var(--row-pad-x);
+    border-bottom: var(--rule-width) solid var(--table-rule);
+    line-height: var(--table-leading);
+    background: var(--clear-fill);
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+dl.tableish dt { white-space: nowrap; font-weight: var(--weight-normal); }
+dl.tableish dt:first-of-type, dl.tableish dd:first-of-type { font-family: var(--ui-font); font-weight: var(--weight-bold); background: var(--table-head); }
+dl.tableish dt:nth-of-type(even), dl.tableish dd:nth-of-type(even) { background: var(--clear-fill); }
+dl.tableish dd > p:last-child { margin-bottom: var(--zero); }
+.bridge, .bridgefull, .bridgedeal, .bridgeauction, .bridgesuitcombo { page-break-inside: avoid; break-inside: avoid; }
+/* Override the shared plugin's print defaults with the configured values. */
+.bridge { --card-spacing: var(--configured-card-spacing); --card-spacing-inline: var(--configured-card-spacing-inline); }
+.cards, div.dealrose { font-family: var(--mono-font); }
+div.bridgeauction { font-size: var(--auction-size); width: var(--auction-width); max-width: var(--full-width); margin: var(--table-top) auto var(--table-bottom); }
+/* Two bidding columns, including the single-hand example in Inverted Minors. */
+div.bridgeauction.size2 { width: var(--auction-narrow-width); }
+div.bridgeauction table.auction { width: var(--full-width); }
+div.bridgeauction table.auction th, div.bridgeauction table.auction td {
+    width: auto;
+    height: var(--auction-cell-height);
+    padding: var(--row-pad-y) var(--auction-cell-pad-x);
+    text-align: center;
+    line-height: var(--table-leading);
+}
+div.bridgeauction table.auction th { font-family: var(--ui-font); font-weight: var(--weight-bold); }
+div.bridgeauction table.auction thead { background: var(--table-head); border-color: var(--table-rule); }
+div.bridgeauction table.auction tbody tr { border-color: var(--table-rule); }
+div.bridgeauction table.notes { font-size: var(--notes-size); line-height: var(--notes-leading); }
+div.dealrose .inner { border-color: var(--compass-rule); background: var(--compass-fill); }
+span.suit.h, span.suit.d { color: var(--red-suit); }
+span.suit.s, span.suit.c { color: var(--ink); }
+@media screen {
+    body { box-sizing: border-box; width: var(--page-width); max-width: var(--full-width); margin: var(--zero) auto; padding: var(--page-side); }
+}
+@media print {
+    body { width: auto; margin: var(--zero); padding: var(--zero); }
+    #frontmatter { page-break-inside: avoid; break-inside: avoid; }
+    .screen { display: none; }
+}
+
